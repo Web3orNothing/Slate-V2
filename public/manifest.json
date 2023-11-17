@@ -1,0 +1,32 @@
+{
+  "theme_color": "#fff",
+  "background_color": "#000",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "name": "AI transaction emitter",
+  "short_name": "AI TX Emitter",
+  "description": "AI-based transaction emitter",
+  "icons": [
+    {
+      "src": "/send.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/send.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/send.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/send.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
