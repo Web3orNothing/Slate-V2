@@ -110,7 +110,6 @@ export default function Response({
   const hasCondition =
     calls.filter((x) => CONDITIONS.includes(x.name)).length > 0;
 
-  const [visibleKeys, setVisibleKeys] = useState<string[]>([]);
   const [popoverAnchor, setPopoverAnchor] = useState<null | HTMLElement>(null);
   const [popoverText, setPopoverText] = useState("");
   const [popoverUrl, setPopoverUrl] = useState("");
@@ -127,12 +126,6 @@ export default function Response({
       });
     });
   }, [actions, chain, protocol]);
-
-  const toggleRows = (key: string) => {
-    if (visibleKeys.includes(key))
-      setVisibleKeys(visibleKeys.filter((x) => x !== key));
-    else setVisibleKeys([...visibleKeys, key]);
-  };
 
   const handlePopoverOpen = async (
     el: HTMLElement,
@@ -213,8 +206,7 @@ export default function Response({
   return (
     <div>
       <div className="my-2 flex items-center cursor-default">
-        <EmptyIndent />
-        <i>{message}</i>
+        <span>{message}</span>
         <i style={{ paddingLeft: "5px" }}>
           {timestamp ? `: ${new Date(parseInt(timestamp)).toUTCString()}` : ""}
         </i>
@@ -228,34 +220,16 @@ export default function Response({
           />
         )}
       </div>
-      <button
-        className="text-left flex items-center"
-        onClick={() => toggleRows("" + id)}
-      >
-        {description}&nbsp;
-        {visibleKeys.includes("" + id) ? (
-          <BsCaretDownSquare />
-        ) : (
-          <BsCaretRightSquare />
-        )}
-      </button>
-      {visibleKeys.includes("" + id) &&
-        rows.map((row, rowIndex) => (
+      <div className="border-l-4 px-4 border-[#AEB1DD]">
+        <div className="text-left flex items-center">{description}&nbsp;</div>
+        {rows.map((row, rowIndex) => (
           <div key={rowIndex}>
             {row.actions.map((x, index) => (
               <div key={`${rowIndex * 100 + index}`}>
-                <button
-                  className="mt-2 flex items-center"
-                  onClick={() => toggleRows(`${rowIndex}action${index}`)}
-                >
-                  <DotIndent /> /{x.name} &nbsp;
-                  {visibleKeys.includes(`${rowIndex}action${index}`) ? (
-                    <BsCaretDownSquare />
-                  ) : (
-                    <BsCaretRightSquare />
-                  )}
+                <button className="mt-2 flex items-center">
+                  /{x.name} &nbsp;
                 </button>
-                {visibleKeys.includes(`${rowIndex}action${index}`) && (
+                {
                   <div>
                     {Object.entries(x.args).map(([key, value], i) => (
                       <Typography
@@ -264,7 +238,7 @@ export default function Response({
                         aria-owns="mouse-over-popover"
                         aria-haspopup="true"
                       >
-                        <EmptyIndent />
+                        <DotIndent />
                         {key}:{" "}
                         {mode === 0 &&
                         !(isCanceled || !!getLastTxHashes(rows)) ? (
@@ -302,22 +276,14 @@ export default function Response({
                       </Typography>
                     ))}
                   </div>
-                )}
+                }
                 {x.txHashes && (!simstatus || mode === 2) && (
                   <div className="mt-2">
-                    <button
-                      className="flex items-center"
-                      onClick={() => toggleRows("txs" + index)}
-                    >
+                    <button className="flex items-center">
                       <DotIndent />
                       Transaction Pathway &nbsp;
-                      {visibleKeys.includes("txs" + index) ? (
-                        <BsCaretDownSquare />
-                      ) : (
-                        <BsCaretRightSquare />
-                      )}
                     </button>
-                    {visibleKeys.includes("txs" + index) && (
+                    {
                       <>
                         {x.txHashes.length > 1 && (
                           <span className="flex items-center">
@@ -340,7 +306,7 @@ export default function Response({
                           />
                         </span>
                       </>
-                    )}
+                    }
                   </div>
                 )}
               </div>
@@ -348,19 +314,11 @@ export default function Response({
             {row.conditions.length > 0 &&
               row.conditions.map((y, index) => (
                 <div key={index}>
-                  <button
-                    className="mt-2 flex items-center"
-                    onClick={() => toggleRows(`${rowIndex}condition${index}`)}
-                  >
+                  <button className="mt-2 flex items-center">
                     <EmptyIndent />
                     <DotIndent /> /{y.name} &nbsp;
-                    {visibleKeys.includes(`${rowIndex}condition${index}`) ? (
-                      <BsCaretDownSquare />
-                    ) : (
-                      <BsCaretRightSquare />
-                    )}
                   </button>
-                  {visibleKeys.includes(`${rowIndex}condition${index}`) && (
+                  {
                     <div>
                       {Object.entries(y.args).map(([key, value]) => (
                         <span key={key}>
@@ -371,11 +329,12 @@ export default function Response({
                         </span>
                       ))}
                     </div>
-                  )}
+                  }
                 </div>
               ))}
           </div>
         ))}
+      </div>
       {mode < 2 && (
         <div className="my-2 flex">
           {!isPending ? (

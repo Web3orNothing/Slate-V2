@@ -147,6 +147,19 @@ const OptionTab = (props: TabProps) => {
             ))}
           </div>
         )}
+        {mode == 2 && (
+          <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
+            <div className="flex justify-between">
+              <div>History</div>
+              <Image
+                alt=""
+                className="flex cursor-pointer"
+                onClick={() => props.setVisible(!props.visible)}
+                src={LeftArrow}
+              />
+            </div>
+          </div>
+        )}
       </div>
       {props.visible == false && (
         <div className="hidden sm:flex flex-col items-center justify-between w-[80px] py-8 bg-[#181818]">
