@@ -66,8 +66,9 @@ const OptionTab = (props: TabProps) => {
               alt="Logo1"
               onClick={() => setMode(0)}
             />
-            {modeData.map((item: any) => (
+            {modeData.map((item: any, id) => (
               <Icon
+                key={id}
                 icon={item.icon}
                 color="white"
                 className={`p-2 ${
@@ -123,8 +124,8 @@ const OptionTab = (props: TabProps) => {
             <p className="text-gray-500">
               Slate Wallet ({makeAddr(embeddedWallet?.address)})
             </p>
-            {Tokens.map((item: TokenParam) => (
-              <div className="flex justify-between py-1">
+            {Tokens.map((item: TokenParam, id) => (
+              <div key={id} className="flex justify-between py-1">
                 <div className="flex gap-3">
                   <Image alt="" className="flex" src={item.icon} />
                   <p>{item.name}</p>
@@ -135,8 +136,8 @@ const OptionTab = (props: TabProps) => {
             <p className="text-gray-500">
               Connected Wallet ({makeAddr(externalWallet?.address)})
             </p>
-            {Tokens.map((item: TokenParam) => (
-              <div className="flex justify-between py-1">
+            {Tokens.map((item: TokenParam, id) => (
+              <div key={id} className="flex justify-between py-1">
                 <div className="flex gap-3">
                   <Image alt="" className="flex" src={item.icon} />
                   <p>{item.name}</p>
