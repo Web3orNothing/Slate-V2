@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
@@ -40,25 +39,17 @@ import {
 } from "@/utils";
 import { chains } from "@/config/constants/Chains";
 import ERC20_ABI from "@/abis/erc20.abi.js";
+import HideLeft from "@/assets/HideLeft.svg";
 
-const ConnectorButton = dynamic(() => import("@/components/ConnectorButton"), {
-  ssr: false,
-});
-const titles = ["Main View", "Pending Operations", "History", "Settings"];
-const inactiveStyle =
-  "border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300";
-const activeStyle =
-  "border-blue-600 text-blue-600 dark:text-blue-500 dark:border-blue-500";
+export type ActionProps = {
+  mode: any;
+  visible: boolean;
+  setVisible: (val: boolean) => void;
+};
 
-export default function ActionTab() {
-  const {
-    authenticated,
-    logout,
-    ready,
-    signMessage,
-    sendTransaction,
-    exportWallet,
-  } = usePrivy();
+export default function ActionTab(props: ActionProps) {
+  const { authenticated, ready, signMessage, sendTransaction, exportWallet } =
+    usePrivy();
   const { wallets } = useWallets();
   const { wallet } = usePrivyWagmi();
   const { chain } = useNetwork();
@@ -72,9 +63,7 @@ export default function ActionTab() {
     [wallets]
   );
 
-  const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | undefined>();
-  const [subscribed, setSubscribed] = useState(false);
   const [initialToken, setInitialToken] = useState<{
     chainName: string;
     token: string;
@@ -87,7 +76,6 @@ export default function ActionTab() {
   } | null>(null);
   const [needOnboardAll, setNeedOnboardAll] = useState(false);
   const [onboardChainName, setOnboardChainName] = useState<string | null>(null);
-  const [mode, setMode] = useState(0);
   const [runningIds, setRunningIds] = useState<string[]>([]);
   const [statsText, setStatsText] = useState<Stats>({ value: "", id: "" });
   const [command, setCommand] = useState("");
@@ -121,6 +109,14 @@ export default function ActionTab() {
   const [verifiedEntities, setVerifiedEntities] = useState<any>();
 
   useEffect(() => {
+    // set connected & address status
+    let auth = ready && authenticated && wallet?.walletClientType === "privy";
+    if (wallet?.address === address) return;
+
+    setAddress(wallet?.address);
+  }, [address, authenticated, ready, wallet]);
+
+  useEffect(() => {
     const fetchEntities = async () => {
       const res = await axios.get(`${WALLET_API_URL}/verified-entities`);
       setVerifiedEntities(res.data);
@@ -129,33 +125,7 @@ export default function ActionTab() {
   }, []);
 
   useEffect(() => {
-    // set connected & address status
-    let auth = ready && authenticated && wallet?.walletClientType === "privy";
-    if (connected === auth && wallet?.address === address) return;
-
-    setConnected(auth);
-    setAddress(wallet?.address);
-  }, [address, authenticated, connected, ready, wallet]);
-
-  useEffect(() => {
-    if (!externalWallet && connected) handleDisconnect();
-  }, [connected, externalWallet]);
-
-  useEffect(() => {
-    // push subscription to backend
-    const subscription = window.localStorage.getItem("subscription");
-    if (!connected || !address || !subscription || subscribed) return;
-
-    axios.post(
-      `${WALLET_API_URL}/subscribe`,
-      { address, subscription: JSON.parse(subscription) },
-      { headers: { "Content-Type": "application/json" } }
-    );
-    setSubscribed(true);
-  }, [address, connected, subscribed]);
-
-  useEffect(() => {
-    if (!connected || !address) return;
+    if (!address) return;
 
     // fetch pending queries
     let queryStr = `${WALLET_API_URL}/condition?accountAddress=${address}`;
@@ -188,15 +158,15 @@ export default function ActionTab() {
     });
 
     // setMainQueries([]);
-  }, [address, connected]);
+  }, [address]);
 
   const switchChain = useCallback(
     async (chainId: number) => {
-      if (!connected || !wallet) return;
+      if (!wallet) return;
       if (+wallet.chainId.split(":")[1] !== chainId)
         await wallet!.switchChain(chainId);
     },
-    [connected, wallet]
+    [wallet]
   );
 
   useEffect(() => {
@@ -247,13 +217,13 @@ export default function ActionTab() {
         }
       }
     );
-  }, [address, chain, connected, sendTransaction, switchChain]);
+  }, [address, chain, sendTransaction, switchChain]);
 
   useEffect(() => {
     if (!address) return;
 
-    if (mode === 0) {
-    } else if (mode === 1) {
+    if (props.mode === 0) {
+    } else if (props.mode === 1) {
       const queryStr = `${WALLET_API_URL}/condition?accountAddress=${address}&isActive=true`;
       axios.get(queryStr).then(({ data: { conditions } }) => {
         setPendingQueries([
@@ -282,7 +252,7 @@ export default function ActionTab() {
         ]);
       });
     }
-  }, [address, mode]);
+  }, [address, props.mode]);
 
   useEffect(() => {
     mainQueries.map((x) => {
@@ -347,16 +317,6 @@ export default function ActionTab() {
       return () => clearTimeout(timer);
     }
   }, [processText]);
-
-  const handleDisconnect = async () => {
-    await axios.post(
-      `${WALLET_API_URL}/subscribe`,
-      { address, subscription: "empty" },
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    logout();
-  };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setSubmitting(true);
@@ -1011,208 +971,170 @@ export default function ActionTab() {
   };
 
   const queriesToShow = useMemo(() => {
-    return [mainQueries, pendingQueries, historyQueries, []][mode].filter(
+    return [mainQueries, pendingQueries, historyQueries, []][props.mode].filter(
       (x) => !hiddenIds.includes(x.id)
     );
-  }, [hiddenIds, historyQueries, mainQueries, mode, pendingQueries]);
+  }, [hiddenIds, historyQueries, mainQueries, props.mode, pendingQueries]);
 
   return (
     <div
-      className={"min-h-screen flex flex-col items-center justify-center p-10"}
+      className={`${
+        props.visible == false ? "flex w-full" : "hidden md:flex md:w-full"
+      } bg-[#383838] text-white min-h-[880px] px-12`}
     >
-      {connected && address ? (
-        <div className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center">
-          <div className="flex flex-row items-center">
-            <span className="text-center">
-              Your external address is <i>{externalWallet?.address || ""}</i>.
+      <div
+        className="flex sm:hidden w-[24px]"
+        onClick={() => props.setVisible(!props.visible)}
+      >
+        <Image className="p-1" width={18} src={HideLeft} alt="Hide Left" />
+      </div>
+      <div className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center">
+        <div className="w-full flex-1 my-3">
+          {props.mode < 3 ? (
+            queriesToShow.map((query) => (
+              <Response
+                key={query.id}
+                mode={props.mode}
+                query={query}
+                runningIds={runningIds}
+                canceledIds={canceledIds}
+                statsText={statsText}
+                processText={processText}
+                iconArray={iconArray}
+                verifiedData={verifiedEntities}
+                handleChangeParams={handleChangeParams}
+                onSubmit={handleSubmit}
+                onDelete={handleDelete}
+                onCancel={handleCancel}
+              />
+            ))
+          ) : (
+            <div>
+              {/*Funds Tab*/}
+              <div className="flex justify-between w-full">
+                <div>
+                  Balance of {walletStats?.symbol}: {walletStats?.formatted}
+                </div>
+                <button
+                  className="flex px-4 py-1 rounded"
+                  onClick={exportWallet}
+                  style={{ border: "solid 1px gray", width: "140px" }}
+                >
+                  Export Wallet Private Key
+                </button>
+              </div>
               <br />
-              Your embedded address is <i>{embeddedWallet?.address || ""}</i>.
-              Read more{" "}
-              <a
-                href="https://docs.privy.io/guide/frontend/embedded/overview"
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                here
-              </a>
-              .
-            </span>
-            <button
-              className="border px-3 py-1 ml-5 rounded"
-              onClick={handleDisconnect}
-            >
-              Disconnect
-            </button>
-          </div>
-          <div className="mt-4 text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700 w-full">
-            <ul className="flex flex-wrap -mb-px">
-              {titles.map((x, index) => (
-                <li key={index} className="w-1/4">
-                  <a
-                    href="#"
-                    onClick={() => (mode === index ? {} : setMode(index))}
-                    className={`inline-block p-2 border-b-2 rounded-t-lg w-full ${
-                      mode === index ? activeStyle : inactiveStyle
-                    }`}
-                  >
-                    {x}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="w-full flex-1 my-3">
-            {mode < 3 ? (
-              queriesToShow.map((query) => (
-                <Response
-                  key={query.id}
-                  mode={mode}
-                  query={query}
-                  runningIds={runningIds}
-                  canceledIds={canceledIds}
-                  statsText={statsText}
-                  processText={processText}
-                  iconArray={iconArray}
-                  verifiedData={verifiedEntities}
-                  handleChangeParams={handleChangeParams}
-                  onSubmit={handleSubmit}
-                  onDelete={handleDelete}
-                  onCancel={handleCancel}
-                />
-              ))
-            ) : (
               <div>
-                {/*Funds Tab*/}
-                <div className="flex justify-between w-full">
-                  <div>
-                    Balance of {walletStats?.symbol}: {walletStats?.formatted}
+                <div className="flex gap-2">
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      className="flex-1 bg-transparent outline-none w-48 px-2 py-1"
+                      placeholder={`Withdraw Amount (${walletStats?.symbol})`}
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      disabled={withdrawing}
+                      style={{ border: "solid 1px gray" }}
+                    />
                   </div>
                   <button
-                    className="flex px-4 py-1 rounded"
-                    onClick={exportWallet}
-                    style={{ border: "solid 1px gray", width: "140px" }}
+                    className="flex py-1 rounded justify-center disabled:bg-gray-300"
+                    onClick={handleWithdraw}
+                    style={{ border: "solid 1px gray", width: "150px" }}
+                    disabled={
+                      withdrawAmount.length === 0 ||
+                      isNaN(parseFloat(withdrawAmount)) ||
+                      withdrawing
+                    }
                   >
-                    Export Wallet Private Key
+                    Withdraw
+                    {withdrawing && <div className="loader" />}
                   </button>
                 </div>
-                <br />
-                <div>
-                  <div className="flex gap-2">
-                    <div className="flex items-center">
-                      <input
-                        type="text"
-                        className="flex-1 bg-transparent outline-none w-48 px-2 py-1"
-                        placeholder={`Withdraw Amount (${walletStats?.symbol})`}
-                        value={withdrawAmount}
-                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                        disabled={withdrawing}
-                        style={{ border: "solid 1px gray" }}
-                      />
-                    </div>
-                    <button
-                      className="flex py-1 rounded justify-center disabled:bg-gray-300"
-                      onClick={handleWithdraw}
-                      style={{ border: "solid 1px gray", width: "150px" }}
-                      disabled={
-                        withdrawAmount.length === 0 ||
-                        isNaN(parseFloat(withdrawAmount)) ||
-                        withdrawing
-                      }
+                {withdrawTx && (
+                  <div>
+                    <Link
+                      href={`https://etherscan.io/tx/${withdrawTx}`}
+                      target="_blank"
                     >
-                      Withdraw
-                      {withdrawing && <div className="loader" />}
-                    </button>
+                      <span className="underline">
+                        {ellipseMiddle(withdrawTx, 6)}
+                      </span>
+                    </Link>
+                    <p className="text-green-700">Success</p>
                   </div>
-                  {withdrawTx && (
-                    <div>
-                      <Link
-                        href={`https://etherscan.io/tx/${withdrawTx}`}
-                        target="_blank"
-                      >
-                        <span className="underline">
-                          {ellipseMiddle(withdrawTx, 6)}
-                        </span>
-                      </Link>
-                      <p className="text-green-700">Success</p>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="flex gap-2">
-                    <div className="flex items-center">
-                      <input
-                        type="text"
-                        className="flex-1 bg-transparent outline-none w-48 px-2 py-1"
-                        placeholder={`Deposit Amount (${walletStats?.symbol})`}
-                        value={depositAmount}
-                        onChange={(e) => setDepositAmount(e.target.value)}
-                        disabled={depositing}
-                        style={{ border: "solid 1px gray" }}
-                      />
-                    </div>
-                    <button
-                      className="flex py-1 rounded justify-center disabled:bg-gray-300"
-                      onClick={handleDeposit}
-                      style={{ border: "solid 1px gray", width: "150px" }}
-                      disabled={
-                        depositAmount.length === 0 ||
-                        isNaN(parseFloat(depositAmount)) ||
-                        depositing
-                      }
-                    >
-                      Deposit
-                      {depositing && <div className="loader" />}
-                    </button>
-                  </div>
-                  {depositTx && (
-                    <div>
-                      <Link
-                        href={`https://etherscan.io/tx/${depositTx}`}
-                        target="_blank"
-                      >
-                        <span className="underline">
-                          {ellipseMiddle(depositTx, 6)}
-                        </span>
-                      </Link>
-                      <p className="text-green-700">Success</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          {mode === 0 && (
-            <>
-              <form
-                className="w-full p-3 rounded-[5px] bg-gray-900 border flex"
-                onSubmit={onSubmit}
-              >
-                <input
-                  type="text"
-                  className="flex-1 bg-transparent outline-none"
-                  placeholder="Enter your command here"
-                  value={command}
-                  disabled={isSubmitting}
-                  onChange={(e) => setCommand(e.target.value)}
-                />
-                {isSubmitting ? (
-                  <div className="loader" />
-                ) : (
-                  <button type="submit" className="ml-3">
-                    <Image src="/send.png" alt="send" width={24} height={24} />
-                  </button>
                 )}
-              </form>
-              <div className="mt-1">{comment}&nbsp;</div>
-            </>
+              </div>
+              <div>
+                <div className="flex gap-2">
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      className="flex-1 bg-transparent outline-none w-48 px-2 py-1"
+                      placeholder={`Deposit Amount (${walletStats?.symbol})`}
+                      value={depositAmount}
+                      onChange={(e) => setDepositAmount(e.target.value)}
+                      disabled={depositing}
+                      style={{ border: "solid 1px gray" }}
+                    />
+                  </div>
+                  <button
+                    className="flex py-1 rounded justify-center disabled:bg-gray-300"
+                    onClick={handleDeposit}
+                    style={{ border: "solid 1px gray", width: "150px" }}
+                    disabled={
+                      depositAmount.length === 0 ||
+                      isNaN(parseFloat(depositAmount)) ||
+                      depositing
+                    }
+                  >
+                    Deposit
+                    {depositing && <div className="loader" />}
+                  </button>
+                </div>
+                {depositTx && (
+                  <div>
+                    <Link
+                      href={`https://etherscan.io/tx/${depositTx}`}
+                      target="_blank"
+                    >
+                      <span className="underline">
+                        {ellipseMiddle(depositTx, 6)}
+                      </span>
+                    </Link>
+                    <p className="text-green-700">Success</p>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
-      ) : (
-        <div className="flex flex-col items-center">
-          <ConnectorButton />
-        </div>
-      )}
+        {props.mode === 0 && (
+          <>
+            <form
+              className="w-full p-3 rounded-[5px] bg-gray-900 border flex"
+              onSubmit={onSubmit}
+            >
+              <input
+                type="text"
+                className="flex-1 bg-transparent outline-none"
+                placeholder="Enter your command here"
+                value={command}
+                disabled={isSubmitting}
+                onChange={(e) => setCommand(e.target.value)}
+              />
+              {isSubmitting ? (
+                <div className="loader" />
+              ) : (
+                <button type="submit" className="ml-3">
+                  <Image src="/send.png" alt="send" width={24} height={24} />
+                </button>
+              )}
+            </form>
+            <div className="mt-1">{comment}&nbsp;</div>
+          </>
+        )}
+      </div>
 
       {needOnboardAll || needGas || initialToken ? (
         <>
