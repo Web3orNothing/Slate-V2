@@ -1,20 +1,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import Image from "next/image";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { usePrivyWagmi } from "@privy-io/wagmi-connector";
 import axios from "axios";
 import { WALLET_API_URL } from "@/config/constants/backend";
 import OptionTab from "./Tabs/OptionTab";
 import ActionTab from "./Tabs/ActionTab";
+import Footer from "@/components/Footer";
 
 const ConnectorButton = dynamic(() => import("@/components/ConnectorButton"), {
   ssr: false,
 });
 
-export default function Home() {
+const Home = () => {
   const { authenticated, logout, ready } = usePrivy();
   const { wallets } = useWallets();
   const { wallet } = usePrivyWagmi();
@@ -22,11 +21,6 @@ export default function Home() {
 
   const externalWallet = useMemo(
     () => (wallets || []).find((x: any) => x.walletClientType !== "privy"),
-    [wallets]
-  );
-
-  const embeddedWallet = useMemo(
-    () => (wallets || []).find((x: any) => x.walletClientType === "privy"),
     [wallets]
   );
 
@@ -69,40 +63,25 @@ export default function Home() {
 
     logout();
   };
-
   return (
     <div>
       {connected && address ? (
         <div className="flex w-full overflow-hidden">
-          {visible ? (
-            <>
-              <OptionTab
-                connected={connected}
-                visible={visible}
-                handleDisconnect={handleDisconnect}
-                setVisible={setVisible}
-                setConnected={setConnected}
-              />
-              <ActionTab mode={0} visible={visible} setVisible={setVisible} />
-            </>
-          ) : (
-            <>
-              <OptionTab
-                connected={connected}
-                visible={visible}
-                handleDisconnect={handleDisconnect}
-                setVisible={setVisible}
-                setConnected={setConnected}
-              />
-              <ActionTab mode={0} visible={visible} setVisible={setVisible} />
-            </>
-          )}
+          <OptionTab
+            visible={visible}
+            handleDisconnect={handleDisconnect}
+            setVisible={setVisible}
+          />
+          <ActionTab mode={0} visible={visible} setVisible={setVisible} />
         </div>
       ) : (
         <div className="flex flex-col justify-center items-center h-[100vh]">
           <ConnectorButton />
         </div>
       )}
+      <Footer />
     </div>
   );
-}
+};
+
+export default Home;

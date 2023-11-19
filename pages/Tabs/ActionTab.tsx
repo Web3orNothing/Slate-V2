@@ -47,7 +47,7 @@ export type ActionProps = {
   setVisible: (val: boolean) => void;
 };
 
-export default function ActionTab(props: ActionProps) {
+export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const { authenticated, ready, signMessage, sendTransaction, exportWallet } =
     usePrivy();
   const { wallets } = useWallets();
@@ -846,26 +846,24 @@ export default function ActionTab(props: ActionProps) {
   };
 
   const queriesToShow = useMemo(() => {
-    return [mainQueries, []][props.mode].filter(
-      (x) => !hiddenIds.includes(x.id)
-    );
-  }, [hiddenIds, mainQueries, props.mode]);
+    return [mainQueries, []][mode].filter((x) => !hiddenIds.includes(x.id));
+  }, [hiddenIds, mainQueries, mode]);
 
   return (
     <div
       className={`${
-        props.visible == false ? "flex w-full" : "hidden md:flex md:w-full"
+        !visible ? "flex w-full" : "hidden md:flex md:w-full"
       } bg-[#383838] text-white min-h-[880px] px-12`}
     >
       <div
         className="flex sm:hidden w-[24px]"
-        onClick={() => props.setVisible(!props.visible)}
+        onClick={() => setVisible(!visible)}
       >
         <Image className="p-1" width={18} src={HideLeft} alt="Hide Left" />
       </div>
       <div className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center">
         <div className="w-full flex-1 my-3">
-          {props.mode < 3 ? (
+          {mode < 3 ? (
             queriesToShow.map((query) => (
               <Response
                 key={query.id}
@@ -985,7 +983,7 @@ export default function ActionTab(props: ActionProps) {
             </div>
           )}
         </div>
-        {props.mode === 0 && (
+        {mode === 0 && (
           <>
             <form
               className="w-full p-3 rounded-[5px] bg-gray-900 border flex"

@@ -1,5 +1,4 @@
 import Image from "next/image";
-import dynamic from "next/dynamic";
 
 import Logo1 from "@/assets/Logo1.svg";
 import LeftArrow from "@/assets/LeftArrow.svg";
@@ -8,18 +7,15 @@ import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
 import { useWallets } from "@privy-io/react-auth";
 import { Tokens, TokenParam } from "@/config/constants/tokens";
-import { ethers, providers, utils } from "ethers";
+import { ethers, utils } from "ethers";
 import ERC20_ABI from "@/abis/erc20.abi";
-import { Query } from "@/components/Response";
 import axios from "axios";
 import { WALLET_API_URL } from "@/config/constants/backend";
 
 export type TabProps = {
   visible: boolean;
-  connected: boolean;
   handleDisconnect: () => void;
   setVisible: (val: boolean) => void;
-  setConnected: (val: boolean) => void;
 };
 
 const modeData = [
@@ -37,7 +33,7 @@ const modeData = [
   },
 ];
 
-const OptionTab = (props: TabProps) => {
+const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
   const { wallets } = useWallets();
   const [mode, setMode] = useState(0);
   const [extBalances, setExtBalances] = useState<string[]>([]);
@@ -59,8 +55,51 @@ const OptionTab = (props: TabProps) => {
     return val?.slice(0, 6) + "..." + val?.slice(val.length - 4);
   };
 
-  const showNumber = (val: any) => {
-    return ("0" + val).slice(-2);
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}/${month}/${day}`;
+  };
+
+  const formatTime = (date: Date) => {
+    const hours = String(date.getUTCHours()).padStart(2, "0");
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+
+  const renderContent = (items: any) => {
+    let content = "<div>";
+    let currentDay: string;
+
+    items.forEach((item: any) => {
+      const date = new Date(item.timestamp);
+      const formattedDate = formatDate(date);
+
+      if (currentDay !== formattedDate) {
+        currentDay = formattedDate;
+        content += `
+          <div style="color: gray">${formattedDate}</div>
+        `;
+      }
+
+      content += `
+        <div class='flex gap-2'>
+          <div style="
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          ">
+            ${item.query.description}
+          </div>
+          <div>${formatTime(date)}</div>
+        </div>
+      `;
+    });
+
+    content += "</div>";
+    return content;
   };
 
   useEffect(() => {
@@ -68,105 +107,24 @@ const OptionTab = (props: TabProps) => {
     let queryStr = `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`;
     axios.get(queryStr).then(({ data: { conditions } }) => {
       if (conditions.length == 0) return;
-      let tmpContent = "<div>";
-      let curDay = new Date(conditions[0].timestamp);
-      tmpContent += `<div>
-      <div style="color:gray">
-        ${curDay.getFullYear()}/${showNumber(
-        curDay.getMonth() + 1
-      )}/${showNumber(curDay.getDate())}
-      </div>
-    `;
-      conditions.map((item: any) => {
-        const tmp = new Date(item.timestamp);
-        if (
-          curDay.getFullYear() != tmp.getFullYear() ||
-          curDay.getMonth() != tmp.getMonth() ||
-          curDay.getDate() != tmp.getDate()
-        ) {
-          curDay = tmp;
-          tmpContent += `<div style="color:gray">
-          ${curDay.getFullYear()}/${showNumber(
-            curDay.getMonth() + 1
-          )}/${showNumber(curDay.getDate())}
-          </div>
-        `;
-        }
-        tmpContent += `
-        <div class='flex gap-2'>
-          <div style="
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          ">
-            ${item.query.description}
-          </div>
-          <div>
-            ${showNumber(tmp.getUTCHours())}:
-            ${showNumber(tmp.getUTCMinutes())}
-          </div>
-        </div>
-      `;
-      });
-      tmpContent += "</div>";
-      setPendingContent(tmpContent);
+
+      const content = renderContent(conditions);
+      setPendingContent(content);
     });
 
     queryStr = `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`;
     axios.get(queryStr).then(({ data: { histories } }) => {
       if (histories.length == 0) return;
-      let tmpContent = "<div>";
-      let curDay = new Date(histories[0].timestamp);
-      tmpContent += `<div>
-      <div style="color:gray">
-        ${curDay.getFullYear()}/${showNumber(
-        curDay.getMonth() + 1
-      )}/${showNumber(curDay.getDate())}
-      </div>
-    `;
-      histories.map((item: any) => {
-        const tmp = new Date(item.timestamp);
-        if (
-          curDay.getFullYear() != tmp.getFullYear() ||
-          curDay.getMonth() != tmp.getMonth() ||
-          curDay.getDate() != tmp.getDate()
-        ) {
-          curDay = tmp;
-          tmpContent += `<div style="color:gray">
-          ${curDay.getFullYear()}/${showNumber(
-            curDay.getMonth() + 1
-          )}/${showNumber(curDay.getDate())}
-          </div>
-        `;
-        }
-        tmpContent += `
-        <div class='flex gap-2'>
-          <div style="
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          ">
-            ${item.query.description}
-          </div>
-          <div>
-            ${showNumber(tmp.getUTCHours())}:
-            ${showNumber(tmp.getUTCMinutes())}
-          </div>
-        </div>
-      `;
-      });
-      tmpContent += "</div>";
-      setHistoryContent(tmpContent);
+      const content = renderContent(histories);
+      setHistoryContent(content);
     });
   }, [mode, embeddedWallet]);
 
   useEffect(() => {
     if (embeddedWallet && externalWallet) {
-      let tmpExt: string[] = [];
-      let tmpEmb: string[] = [];
-      const func = async () => {
+      const fetchBalances = async () => {
+        let tmpExt: string[] = [];
+        let tmpEmb: string[] = [];
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const ethExternal = await provider.getBalance(externalWallet.address);
         const ethEmbedded = await provider.getBalance(embeddedWallet.address);
@@ -194,15 +152,15 @@ const OptionTab = (props: TabProps) => {
         setEmbBalances(tmpEmb);
         setExtBalances(tmpExt);
       };
-      func();
+      fetchBalances();
     }
-  }, [mode, setEmbBalances, setExtBalances]);
+  }, [mode, embeddedWallet, externalWallet, setEmbBalances, setExtBalances]);
 
   return (
     <>
       <div
         className={`${
-          props.visible == true
+          visible
             ? "flex py-8 px-4 bg-[#181818] w-full md:w-auto h-full min-h-[880px]"
             : "hidden py-8 px-4 bg-[#181818] w-full h-full min-h-[880px]"
         }`}
@@ -221,7 +179,7 @@ const OptionTab = (props: TabProps) => {
                 icon={item.icon}
                 color="white"
                 className={`p-2 ${
-                  mode == item.mode ? "bg-[#464B53]" : ""
+                  mode === item.mode ? "bg-[#464B53]" : ""
                 } rounded-md`}
                 width={40}
                 onClick={() => setMode(item.mode)}
@@ -237,7 +195,7 @@ const OptionTab = (props: TabProps) => {
               <Image
                 alt=""
                 className="flex cursor-pointer"
-                onClick={() => props.setVisible(!props.visible)}
+                onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
@@ -254,7 +212,7 @@ const OptionTab = (props: TabProps) => {
             <p>Fund Account</p>
             <p>Export Private Key</p>
             <p>Withdraw to External Wallet</p>
-            <p className="cursor-pointer" onClick={props.handleDisconnect}>
+            <p className="cursor-pointer" onClick={handleDisconnect}>
               Disconnect External Wallet
             </p>
           </div>
@@ -266,7 +224,7 @@ const OptionTab = (props: TabProps) => {
               <Image
                 alt=""
                 className="flex cursor-pointer"
-                onClick={() => props.setVisible(!props.visible)}
+                onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
@@ -309,7 +267,7 @@ const OptionTab = (props: TabProps) => {
               <Image
                 alt=""
                 className="flex cursor-pointer"
-                onClick={() => props.setVisible(!props.visible)}
+                onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
@@ -323,7 +281,7 @@ const OptionTab = (props: TabProps) => {
               <Image
                 alt=""
                 className="flex cursor-pointer"
-                onClick={() => props.setVisible(!props.visible)}
+                onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
@@ -331,14 +289,14 @@ const OptionTab = (props: TabProps) => {
           </div>
         )}
       </div>
-      {props.visible == false && (
+      {!visible && (
         <div className="hidden sm:flex flex-col items-center justify-between px-4 py-8 bg-[#181818]">
           <div className="flex flex-col gap-6">
             <Image
               alt=""
               className="pb-8 cursor-pointer"
               src={Logo1}
-              onClick={() => props.setVisible(!props.visible)}
+              onClick={() => setVisible(!visible)}
             />
             {modeData.map((item: any, id) => (
               <Icon
