@@ -42,8 +42,8 @@ const OptionTab = (props: TabProps) => {
   const [mode, setMode] = useState(0);
   const [extBalances, setExtBalances] = useState<string[]>([]);
   const [embBalances, setEmbBalances] = useState<string[]>([]);
-  const [pendingQueries, setPendingQueries] = useState<Query[]>([]);
-  const [historyQueries, setHistoryQueries] = useState<Query[]>([]);
+  const [historyContent, setHistoryContent] = useState<string>("");
+  const [pendingContent, setPendingContent] = useState<string>("");
 
   const externalWallet = useMemo(
     () => (wallets || []).find((x: any) => x.walletClientType !== "privy"),
@@ -59,37 +59,108 @@ const OptionTab = (props: TabProps) => {
     return val?.slice(0, 6) + "..." + val?.slice(val.length - 4);
   };
 
+  const showNumber = (val: any) => {
+    return ("0" + val).slice(-2);
+  };
+
   useEffect(() => {
     if (!embeddedWallet) return;
-
     let queryStr = `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`;
     axios.get(queryStr).then(({ data: { conditions } }) => {
-      setPendingQueries([
-        ...conditions.map((x: any) => ({
-          ...x.query,
-          id: `c${x.id}`,
-          conditions: x.conditions,
-          actions: x.actions,
-          calls: x.query.calls,
-          conditionId: x.id,
-          simstatus: x.simstatus,
-        })),
-      ]);
+      if (conditions.length == 0) return;
+      let tmpContent = "<div>";
+      let curDay = new Date(conditions[0].timestamp);
+      tmpContent += `<div>
+      <div style="color:gray">
+        ${curDay.getFullYear()}/${showNumber(
+        curDay.getMonth() + 1
+      )}/${showNumber(curDay.getDate())}
+      </div>
+    `;
+      conditions.map((item: any) => {
+        const tmp = new Date(item.timestamp);
+        if (
+          curDay.getFullYear() != tmp.getFullYear() ||
+          curDay.getMonth() != tmp.getMonth() ||
+          curDay.getDate() != tmp.getDate()
+        ) {
+          curDay = tmp;
+          tmpContent += `<div style="color:gray">
+          ${curDay.getFullYear()}/${showNumber(
+            curDay.getMonth() + 1
+          )}/${showNumber(curDay.getDate())}
+          </div>
+        `;
+        }
+        tmpContent += `
+        <div class='flex gap-2'>
+          <div style="
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          ">
+            ${item.query.description}
+          </div>
+          <div>
+            ${showNumber(tmp.getUTCHours())}:
+            ${showNumber(tmp.getUTCMinutes())}
+          </div>
+        </div>
+      `;
+      });
+      tmpContent += "</div>";
+      setPendingContent(tmpContent);
     });
 
     queryStr = `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`;
     axios.get(queryStr).then(({ data: { histories } }) => {
-      setHistoryQueries([
-        ...histories.map((x: any) => ({
-          ...x.query,
-          id: `h${x.id}`,
-          conditions: x.conditions,
-          actions: x.actions,
-          timestamp: x.timestamp,
-        })),
-      ]);
+      if (histories.length == 0) return;
+      let tmpContent = "<div>";
+      let curDay = new Date(histories[0].timestamp);
+      tmpContent += `<div>
+      <div style="color:gray">
+        ${curDay.getFullYear()}/${showNumber(
+        curDay.getMonth() + 1
+      )}/${showNumber(curDay.getDate())}
+      </div>
+    `;
+      histories.map((item: any) => {
+        const tmp = new Date(item.timestamp);
+        if (
+          curDay.getFullYear() != tmp.getFullYear() ||
+          curDay.getMonth() != tmp.getMonth() ||
+          curDay.getDate() != tmp.getDate()
+        ) {
+          curDay = tmp;
+          tmpContent += `<div style="color:gray">
+          ${curDay.getFullYear()}/${showNumber(
+            curDay.getMonth() + 1
+          )}/${showNumber(curDay.getDate())}
+          </div>
+        `;
+        }
+        tmpContent += `
+        <div class='flex gap-2'>
+          <div style="
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          ">
+            ${item.query.description}
+          </div>
+          <div>
+            ${showNumber(tmp.getUTCHours())}:
+            ${showNumber(tmp.getUTCMinutes())}
+          </div>
+        </div>
+      `;
+      });
+      tmpContent += "</div>";
+      setHistoryContent(tmpContent);
     });
-  }, [embeddedWallet]);
+  }, [mode, embeddedWallet]);
 
   useEffect(() => {
     if (embeddedWallet && externalWallet) {
@@ -242,6 +313,21 @@ const OptionTab = (props: TabProps) => {
                 src={LeftArrow}
               />
             </div>
+            <div dangerouslySetInnerHTML={{ __html: historyContent }} />
+          </div>
+        )}
+        {mode == 3 && (
+          <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
+            <div className="flex justify-between">
+              <div>Pending Prompts</div>
+              <Image
+                alt=""
+                className="flex cursor-pointer"
+                onClick={() => props.setVisible(!props.visible)}
+                src={LeftArrow}
+              />
+            </div>
+            <div dangerouslySetInnerHTML={{ __html: pendingContent }} />
           </div>
         )}
       </div>

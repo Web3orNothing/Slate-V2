@@ -80,8 +80,6 @@ export default function ActionTab(props: ActionProps) {
   const [command, setCommand] = useState("");
   const [count, setCount] = useState(0);
   const [mainQueries, setMainQueries] = useState<Query[]>([]);
-  const [pendingQueries, setPendingQueries] = useState<Query[]>([]);
-  const [historyQueries, setHistoryQueries] = useState<Query[]>([]);
   const [canceledIds, setCanceledIds] = useState<string[]>([]);
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const [isSubmitting, setSubmitting] = useState(false);
@@ -123,43 +121,6 @@ export default function ActionTab(props: ActionProps) {
     fetchEntities();
   }, []);
 
-  useEffect(() => {
-    if (!address) return;
-
-    // fetch pending queries
-    let queryStr = `${WALLET_API_URL}/condition?accountAddress=${address}`;
-    axios.get(queryStr).then(({ data: { conditions } }) => {
-      setPendingQueries([
-        ...conditions.map((x: any) => ({
-          ...x.query,
-          id: `c${x.id}`,
-          conditions: x.conditions,
-          actions: x.actions,
-          calls: x.query.calls,
-          conditionId: x.id,
-          simstatus: x.simstatus,
-        })),
-      ]);
-    });
-
-    // fetch history queries
-    queryStr = `${WALLET_API_URL}/history?accountAddress=${address}`;
-    axios.get(queryStr).then(({ data: { histories } }) => {
-      setHistoryQueries([
-        ...histories.map((x: any) => ({
-          ...x.query,
-          id: `h${x.id}`,
-          conditions: x.conditions,
-          actions: x.actions,
-          timestamp: x.timestamp,
-        })),
-      ]);
-    });
-
-    // setMainQueries([]);
-  }, [address]);
-
-  console.log(mainQueries);
   const switchChain = useCallback(
     async (chainId: number) => {
       if (!wallet) return;
@@ -220,41 +181,6 @@ export default function ActionTab(props: ActionProps) {
   }, [address, chain, sendTransaction, switchChain]);
 
   useEffect(() => {
-    if (!address) return;
-
-    if (props.mode === 0) {
-    } else if (props.mode === 1) {
-      const queryStr = `${WALLET_API_URL}/condition?accountAddress=${address}&isActive=true`;
-      axios.get(queryStr).then(({ data: { conditions } }) => {
-        setPendingQueries([
-          ...conditions.map((x: any) => ({
-            ...x.query,
-            id: `c${x.id}`,
-            calls: x.query.calls,
-            conditions: x.conditions,
-            actions: x.actions,
-            conditionId: x.id,
-            simstatus: x.simstatus,
-          })),
-        ]);
-      });
-    } else {
-      const queryStr = `${WALLET_API_URL}/history?accountAddress=${address}`;
-      axios.get(queryStr).then(({ data: { histories } }) => {
-        setHistoryQueries([
-          ...histories.map((x: any) => ({
-            ...x.query,
-            id: `h${x.id}`,
-            conditions: x.conditions,
-            actions: x.actions,
-            timestamp: x.timestamp,
-          })),
-        ]);
-      });
-    }
-  }, [address, props.mode]);
-
-  useEffect(() => {
     mainQueries.map((x) => {
       x.actions.map((act) => {
         Object.entries(act.args).map(async ([key, value]) => {
@@ -269,37 +195,7 @@ export default function ActionTab(props: ActionProps) {
         });
       });
     });
-
-    historyQueries.map((x) => {
-      x.actions.map((act) => {
-        Object.entries(act.args).map(async ([key, value]) => {
-          if (
-            !iconArray.find((x) => x.coin === value) &&
-            (key.toLowerCase().includes("token") ||
-              key.toLowerCase().includes("chain"))
-          ) {
-            const url = await getIconFromToken(value);
-            setIconArray([...iconArray, { coin: value, image: url }]);
-          }
-        });
-      });
-    });
-
-    pendingQueries.map((x) => {
-      x.actions.map((act) => {
-        Object.entries(act.args).map(async ([key, value]) => {
-          if (
-            !iconArray.find((x) => x.coin === value) &&
-            (key.toLowerCase().includes("token") ||
-              key.toLowerCase().includes("chain"))
-          ) {
-            const url = await getIconFromToken(value);
-            setIconArray([...iconArray, { coin: value, image: url }]);
-          }
-        });
-      });
-    });
-  }, [mainQueries, historyQueries, pendingQueries, iconArray]);
+  }, [mainQueries, iconArray]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -707,27 +603,6 @@ export default function ActionTab(props: ActionProps) {
     setCanceledIds([...canceledIds, id]);
   };
 
-  const handleCancel = async (id: string) => {
-    const index = pendingQueries.findIndex((x) => x.id === id);
-    const { conditionId } = pendingQueries[index];
-    const signature = await signMessage(
-      `I authorize cancellation #${conditionId}`
-    );
-    try {
-      const {
-        data: { message },
-      } = await axios.post(
-        `${WALLET_API_URL}/cancel`,
-        { accountAddress: address, conditionId, signature },
-        { headers: { "Content-Type": "application/json" } }
-      );
-      if (!message)
-        setPendingQueries(pendingQueries.filter((x) => x.id !== id));
-    } catch (error) {
-      console.log("Error during cancel condition transaction", error);
-    }
-  };
-
   const checkWeb3Provider = async (chainId: number) => {
     let srcChain: any = chains.find((x) => x.id === chainId);
     const srcRPC = getRpcUrlForChain(chainId);
@@ -971,10 +846,10 @@ export default function ActionTab(props: ActionProps) {
   };
 
   const queriesToShow = useMemo(() => {
-    return [mainQueries, pendingQueries, historyQueries, []][props.mode].filter(
+    return [mainQueries, []][props.mode].filter(
       (x) => !hiddenIds.includes(x.id)
     );
-  }, [hiddenIds, historyQueries, mainQueries, props.mode, pendingQueries]);
+  }, [hiddenIds, mainQueries, props.mode]);
 
   return (
     <div
@@ -994,7 +869,8 @@ export default function ActionTab(props: ActionProps) {
             queriesToShow.map((query) => (
               <Response
                 key={query.id}
-                mode={props.mode}
+                // mode={props.mode}
+                mode={0}
                 query={query}
                 runningIds={runningIds}
                 canceledIds={canceledIds}
@@ -1005,7 +881,7 @@ export default function ActionTab(props: ActionProps) {
                 handleChangeParams={handleChangeParams}
                 onSubmit={handleSubmit}
                 onDelete={handleDelete}
-                onCancel={handleCancel}
+                // onCancel={handleCancel}
               />
             ))
           ) : (

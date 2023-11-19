@@ -72,7 +72,7 @@ type ResponseProps = {
   ) => void;
   onSubmit: (id: string) => void;
   onDelete: (id: string) => void;
-  onCancel: (id: string) => void;
+  // onCancel: (id: string) => void;
 };
 
 const useStyles = makeStyles(() => ({
@@ -92,8 +92,8 @@ export default function Response({
   handleChangeParams,
   onSubmit,
   onDelete,
-  onCancel,
-}: ResponseProps) {
+}: // onCancel,
+ResponseProps) {
   const classes = useStyles();
   const isPending = runningIds.includes(query.id);
   const isCanceled = canceledIds.includes(query.id);
@@ -346,7 +346,7 @@ export default function Response({
                 (!hasCondition && runningIds.length > 0) || // not condition call and already running tx
                 !!getLastTxHashes(rows) // not condition call already executed
               }
-              onClick={() => [onSubmit, onCancel][mode](query.id)}
+              onClick={() => [onSubmit][mode](query.id)}
             >
               {!!getLastTxHashes(rows) ? (
                 getLastTxHashes(rows)![getLastTxHashes(rows)!.length - 1] !==
