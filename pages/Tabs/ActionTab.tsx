@@ -62,7 +62,6 @@ export default function ActionTab(props: ActionProps) {
     () => (wallets || []).find((x: any) => x.walletClientType === "privy"),
     [wallets]
   );
-
   const [address, setAddress] = useState<string | undefined>();
   const [initialToken, setInitialToken] = useState<{
     chainName: string;
@@ -160,6 +159,7 @@ export default function ActionTab(props: ActionProps) {
     // setMainQueries([]);
   }, [address]);
 
+  console.log(mainQueries);
   const switchChain = useCallback(
     async (chainId: number) => {
       if (!wallet) return;

@@ -5,9 +5,14 @@ import Logo1 from "@/assets/Logo1.svg";
 import LeftArrow from "@/assets/LeftArrow.svg";
 import Account from "@/assets/Account.svg";
 import { Icon } from "@iconify/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWallets } from "@privy-io/react-auth";
 import { Tokens, TokenParam } from "@/config/constants/tokens";
+import { ethers, providers, utils } from "ethers";
+import ERC20_ABI from "@/abis/erc20.abi";
+import { Query } from "@/components/Response";
+import axios from "axios";
+import { WALLET_API_URL } from "@/config/constants/backend";
 
 export type TabProps = {
   visible: boolean;
@@ -35,6 +40,10 @@ const modeData = [
 const OptionTab = (props: TabProps) => {
   const { wallets } = useWallets();
   const [mode, setMode] = useState(0);
+  const [extBalances, setExtBalances] = useState<string[]>([]);
+  const [embBalances, setEmbBalances] = useState<string[]>([]);
+  const [pendingQueries, setPendingQueries] = useState<Query[]>([]);
+  const [historyQueries, setHistoryQueries] = useState<Query[]>([]);
 
   const externalWallet = useMemo(
     () => (wallets || []).find((x: any) => x.walletClientType !== "privy"),
@@ -49,6 +58,75 @@ const OptionTab = (props: TabProps) => {
   const makeAddr = (val: string | undefined) => {
     return val?.slice(0, 6) + "..." + val?.slice(val.length - 4);
   };
+
+  useEffect(() => {
+    if (!embeddedWallet) return;
+
+    let queryStr = `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`;
+    axios.get(queryStr).then(({ data: { conditions } }) => {
+      setPendingQueries([
+        ...conditions.map((x: any) => ({
+          ...x.query,
+          id: `c${x.id}`,
+          conditions: x.conditions,
+          actions: x.actions,
+          calls: x.query.calls,
+          conditionId: x.id,
+          simstatus: x.simstatus,
+        })),
+      ]);
+    });
+
+    queryStr = `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`;
+    axios.get(queryStr).then(({ data: { histories } }) => {
+      setHistoryQueries([
+        ...histories.map((x: any) => ({
+          ...x.query,
+          id: `h${x.id}`,
+          conditions: x.conditions,
+          actions: x.actions,
+          timestamp: x.timestamp,
+        })),
+      ]);
+    });
+  }, [embeddedWallet]);
+
+  useEffect(() => {
+    if (embeddedWallet && externalWallet) {
+      let tmpExt: string[] = [];
+      let tmpEmb: string[] = [];
+      const func = async () => {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const ethExternal = await provider.getBalance(externalWallet.address);
+        const ethEmbedded = await provider.getBalance(embeddedWallet.address);
+        for (let i = 0; i < Tokens.length; i++) {
+          if (Tokens[i].currency == "ETH") {
+            tmpExt.push(utils.formatEther(ethExternal));
+            tmpEmb.push(utils.formatEther(ethEmbedded));
+          } else {
+            const contract = new ethers.Contract(
+              Tokens[i].address,
+              ERC20_ABI,
+              provider
+            );
+            const decimals = await contract.decimals();
+            const tokenExternal = await contract.balanceOf(
+              externalWallet.address
+            );
+            const tokenEmbedded = await contract.balanceOf(
+              embeddedWallet.address
+            );
+            tmpEmb.push(utils.formatUnits(tokenEmbedded, decimals));
+            tmpExt.push(utils.formatUnits(tokenExternal, decimals));
+          }
+        }
+        setEmbBalances(tmpEmb);
+        setExtBalances(tmpExt);
+      };
+      func();
+    }
+  }, [mode, setEmbBalances, setExtBalances]);
+
   return (
     <>
       <div
@@ -130,7 +208,10 @@ const OptionTab = (props: TabProps) => {
                   <Image alt="" className="flex" src={item.icon} />
                   <p>{item.name}</p>
                 </div>
-                <div>5.01240 ${item.currency}</div>
+                <div>
+                  {parseFloat(parseFloat(embBalances[id]).toFixed(4))} $
+                  {item.currency}
+                </div>
               </div>
             ))}
             <p className="text-gray-500">
@@ -142,7 +223,10 @@ const OptionTab = (props: TabProps) => {
                   <Image alt="" className="flex" src={item.icon} />
                   <p>{item.name}</p>
                 </div>
-                <div>5.01240 ${item.currency}</div>
+                <div>
+                  {parseFloat(parseFloat(extBalances[id]).toFixed(4))} $
+                  {item.currency}
+                </div>
               </div>
             ))}
           </div>
@@ -162,32 +246,26 @@ const OptionTab = (props: TabProps) => {
         )}
       </div>
       {props.visible == false && (
-        <div className="hidden sm:flex flex-col items-center justify-between w-[80px] py-8 bg-[#181818]">
-          <div className="flex flex-col gap-6 items-center">
+        <div className="hidden sm:flex flex-col items-center justify-between px-4 py-8 bg-[#181818]">
+          <div className="flex flex-col gap-6">
             <Image
               alt=""
               className="pb-8 cursor-pointer"
               src={Logo1}
               onClick={() => props.setVisible(!props.visible)}
             />
-            <Icon
-              icon="lets-icons:wallet"
-              color="white"
-              className="p-2"
-              width={40}
-            />
-            <Icon
-              icon="octicon:book-16"
-              color="white"
-              className="p-2"
-              width={40}
-            />
-            <Icon
-              icon="ic:round-gps-fixed"
-              color="white"
-              className="p-2"
-              width={40}
-            />
+            {modeData.map((item: any, id) => (
+              <Icon
+                key={id}
+                icon={item.icon}
+                color="white"
+                className={`p-2 ${
+                  mode == item.mode ? "bg-[#464B53]" : ""
+                } rounded-md`}
+                width={40}
+                onClick={() => setMode(item.mode)}
+              />
+            ))}
           </div>
           <Image alt="" src={Account} />
         </div>
