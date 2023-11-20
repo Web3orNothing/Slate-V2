@@ -163,6 +163,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         const conditionResponse = await axios.get(
           `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`
         );
+        console.log(conditionResponse);
         const { conditions } = conditionResponse.data;
         if (conditions.length > 0) {
           const pendingContent = pendingTypes

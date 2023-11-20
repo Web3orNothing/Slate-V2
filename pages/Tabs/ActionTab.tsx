@@ -863,26 +863,30 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
         <Image className="p-1" width={18} src={HideLeft} alt="Hide Left" />
       </div>
       <div className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center">
-        <div className="w-full flex-1 my-3">
+        <div className="w-full flex-1 my-6">
           {mode < 3 ? (
-            queriesToShow.map((query) => (
-              <Response
-                key={query.id}
-                // mode={props.mode}
-                mode={0}
-                query={query}
-                runningIds={runningIds}
-                canceledIds={canceledIds}
-                statsText={statsText}
-                processText={processText}
-                iconArray={iconArray}
-                verifiedData={verifiedEntities}
-                handleChangeParams={handleChangeParams}
-                onSubmit={handleSubmit}
-                onDelete={handleDelete}
-                // onCancel={handleCancel}
-              />
-            ))
+            queriesToShow.length > 0 ? (
+              queriesToShow.map((query) => (
+                <Response
+                  key={query.id}
+                  // mode={props.mode}
+                  mode={0}
+                  query={query}
+                  runningIds={runningIds}
+                  canceledIds={canceledIds}
+                  statsText={statsText}
+                  processText={processText}
+                  iconArray={iconArray}
+                  verifiedData={verifiedEntities}
+                  handleChangeParams={handleChangeParams}
+                  onSubmit={handleSubmit}
+                  onDelete={handleDelete}
+                  // onCancel={handleCancel}
+                />
+              ))
+            ) : (
+              <div>Send in your first prompt below!</div>
+            )
           ) : (
             <div>
               {/*Funds Tab*/}
