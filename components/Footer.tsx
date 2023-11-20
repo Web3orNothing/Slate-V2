@@ -2,15 +2,15 @@ import Image from "next/image";
 import { styled } from "@mui/material/styles";
 
 import FooterBg from "@/assets/Footer.png";
-import LoopedSquare from "@/assets/loppedSquare.png";
+import LoopedSquare from "@/assets/cmd.png";
 
 const CustomText = styled("div")({
   padding: "4px 0px 4px 0px",
 });
 
 const CustomButton = styled("div")({
-  background: "gray",
-  padding: "4px 10px 4px 10px",
+  background: "rgba(255,255,255,0.3)",
+  padding: "4px 8px 4px 8px",
   borderRadius: "6px",
 });
 

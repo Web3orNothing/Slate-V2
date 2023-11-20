@@ -186,10 +186,10 @@ ResponseProps) {
 
   const rows = useMemo(() => {
     const group = groupConditions(calls);
-    if (mode > 0) return [{ actions, conditions }];
+    // if (mode > 0) return [{ actions, conditions }];
     if (!group) return [{ actions, conditions: [] }];
     return group;
-  }, [actions, calls, conditions, mode]);
+  }, [actions, calls, conditions]);
 
   const getIcon = (key: string, value: string) => {
     if (
@@ -339,7 +339,7 @@ ResponseProps) {
         <div className="my-2 flex">
           {!isPending ? (
             <button
-              className="border py-1 px-3 mt-1 mr-3"
+              className={`${mode ? "hidden" : ""} border py-1 px-3 mt-1 mr-3`}
               disabled={
                 isPending || // pending
                 isCanceled || // already canceled

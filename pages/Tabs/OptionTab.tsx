@@ -239,7 +239,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
       <div
         className={`${
           visible
-            ? "flex py-8 px-4 bg-[#181818] w-full md:w-auto h-full min-h-[880px]"
+            ? "flex text-[12px] py-8 px-4 bg-[#181818] w-full md:w-auto min-h-[880px]"
             : "hidden py-8 px-4 bg-[#181818] w-full h-full min-h-[880px]"
         }`}
       >
@@ -269,7 +269,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         {mode === 0 && (
           <div className="flex flex-col gap-7 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
-              <div>Account</div>
+              <div className="text-[16px]">Account</div>
               <Image
                 alt=""
                 className="flex cursor-pointer"
@@ -298,7 +298,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         {mode === 1 && (
           <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
-              <div>Funds</div>
+              <div className="text-[16px]">Funds</div>
               <Image
                 alt=""
                 className="flex cursor-pointer"
@@ -309,39 +309,47 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
             <p className="text-gray-500">
               Slate Wallet ({makeAddr(embeddedWallet?.address)})
             </p>
-            {Tokens.map((item: TokenParam, id) => (
-              <div key={id} className="flex justify-between py-1">
-                <div className="flex gap-3">
-                  <Image alt="" className="flex" src={item.icon} />
-                  <p>{item.name}</p>
-                </div>
-                <div>
-                  {parseFloat(parseFloat(embBalances[id]).toFixed(4))} $
-                  {item.currency}
-                </div>
-              </div>
-            ))}
+            {Tokens.filter((item, id) => parseFloat(embBalances[id]) > 0).map(
+              (item, id) => {
+                const embBalance = parseFloat(embBalances[item.id]).toFixed(4);
+                return (
+                  <div key={id} className="flex justify-between items-center">
+                    <div className="flex gap-3 items-center">
+                      <Image alt="" className="flex" src={item.icon} />
+                      <p>{item.name}</p>
+                    </div>
+                    <div>
+                      {embBalance} ${item.currency}
+                    </div>
+                  </div>
+                );
+              }
+            )}
             <p className="text-gray-500">
               Connected Wallet ({makeAddr(externalWallet?.address)})
             </p>
-            {Tokens.map((item: TokenParam, id) => (
-              <div key={id} className="flex justify-between py-1">
-                <div className="flex gap-3">
-                  <Image alt="" className="flex" src={item.icon} />
-                  <p>{item.name}</p>
-                </div>
-                <div>
-                  {parseFloat(parseFloat(extBalances[id]).toFixed(4))} $
-                  {item.currency}
-                </div>
-              </div>
-            ))}
+            {Tokens.filter((item, id) => parseFloat(extBalances[id]) > 0).map(
+              (item, id) => {
+                const extBalance = parseFloat(extBalances[item.id]).toFixed(4);
+                return (
+                  <div key={id} className="flex justify-between items-center">
+                    <div className="flex gap-3 items-center">
+                      <Image alt="" className="flex" src={item.icon} />
+                      <p>{item.name}</p>
+                    </div>
+                    <div>
+                      {extBalance} ${item.currency}
+                    </div>
+                  </div>
+                );
+              }
+            )}
           </div>
         )}
         {mode === 2 && (
           <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
-              <div>History</div>
+              <div className="text-[16px]">History</div>
               <Image
                 alt=""
                 className="flex cursor-pointer"
@@ -355,7 +363,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         {mode === 3 && (
           <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
-              <div>Pending Prompts</div>
+              <div className="text-[16px]">Pending Prompts</div>
               <Image
                 alt=""
                 className="flex cursor-pointer"

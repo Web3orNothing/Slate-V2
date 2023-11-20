@@ -41,6 +41,7 @@ import {
 import { chains } from "@/config/constants/Chains";
 import ERC20_ABI from "@/abis/erc20.abi.js";
 import HideLeft from "@/assets/HideLeft.svg";
+import { mockedUpQuery } from "@/config/constants/sampleQuery";
 
 export type ActionProps = {
   mode: any;
@@ -849,7 +850,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const queriesToShow = useMemo(() => {
     return [mainQueries, []][mode].filter((x) => !hiddenIds.includes(x.id));
   }, [hiddenIds, mainQueries, mode]);
-
+  console.log(mainQueries);
   return (
     <div
       className={`${
@@ -869,7 +870,6 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
               queriesToShow.map((query) => (
                 <Response
                   key={query.id}
-                  // mode={props.mode}
                   mode={0}
                   query={query}
                   runningIds={runningIds}
@@ -881,11 +881,30 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
                   handleChangeParams={handleChangeParams}
                   onSubmit={handleSubmit}
                   onDelete={handleDelete}
-                  // onCancel={handleCancel}
                 />
               ))
             ) : (
-              <div>Send in your first prompt below!</div>
+              <div>
+                <div>Send in your first prompt below!</div>
+                <div style={{ filter: "blur(6px)", pointerEvents: "none" }}>
+                  {mockedUpQuery.map((query) => (
+                    <Response
+                      key={query.id}
+                      mode={1}
+                      query={query}
+                      runningIds={runningIds}
+                      canceledIds={canceledIds}
+                      statsText={statsText}
+                      processText={processText}
+                      iconArray={iconArray}
+                      verifiedData={verifiedEntities}
+                      handleChangeParams={handleChangeParams}
+                      onSubmit={handleSubmit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              </div>
             )
           ) : (
             <div>
