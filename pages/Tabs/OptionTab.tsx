@@ -33,6 +33,8 @@ const modeData = [
   },
 ];
 
+const pendingTypes = ["gas", "price", "time", "marketcap", "balance"];
+
 const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
   const { wallets } = useWallets();
   const [mode, setMode] = useState(0);
@@ -68,9 +70,9 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
     return `${hours}:${minutes}`;
   };
 
-  const renderContent = (items: any) => {
+  const renderContent = (items: any[]): string => {
     let content = "<div>";
-    let currentDay: string;
+    let currentDay: string | undefined;
 
     items.forEach((item: any) => {
       const date = new Date(item.timestamp);
@@ -83,41 +85,116 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         `;
       }
 
-      content += `
-        <div class='flex gap-2'>
+      const itemContent = `
+        <div style="display:flex;width:100%;justify-content:space-between;">
           <div style="
-            max-width: 200px;
+            max-width: 60%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
           ">
-            ${item.query.description}
+            ${item.query.message}
           </div>
           <div>${formatTime(date)}</div>
         </div>
       `;
+
+      content += itemContent;
     });
 
     content += "</div>";
     return content;
   };
 
+  const renderPendingContent = (items: any[], type: string): string => {
+    const capitalizeType = type.charAt(0).toUpperCase() + type.slice(1);
+
+    let content = `
+      <div style="color: gray;">${capitalizeType}</div>
+    `;
+
+    items.forEach((item: any) => {
+      let showData = "";
+      const conditions = item.conditions[0].args;
+
+      switch (type) {
+        case "gas":
+          showData = `${conditions.value} GWEI`;
+          break;
+        case "price":
+          showData = `\$${
+            conditions.value
+          } ${conditions.subject.toUpperCase()}`;
+          break;
+        case "time":
+          showData = `${formatTime(new Date(conditions.start_time))} UTC`;
+          break;
+        case "marketcap":
+          showData = `${conditions.value} USD`;
+          break;
+        case "balance":
+          showData = `${conditions.value} ${conditions.subject.toUpperCase()}`;
+          break;
+      }
+
+      content += `
+        <div style="display:flex;width:100%;justify-content:space-between;">
+          <div style="
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          ">
+            ${item.query.message}
+          </div>
+          <div>@ ${showData}</div>
+        </div>
+      `;
+    });
+
+    return content;
+  };
+
   useEffect(() => {
     if (!embeddedWallet) return;
-    let queryStr = `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`;
-    axios.get(queryStr).then(({ data: { conditions } }) => {
-      if (conditions.length == 0) return;
 
-      const content = renderContent(conditions);
-      setPendingContent(content);
-    });
+    const fetchData = async () => {
+      try {
+        const conditionResponse = await axios.get(
+          `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`
+        );
+        const { conditions } = conditionResponse.data;
+        if (conditions.length > 0) {
+          const pendingContent = pendingTypes
+            .map((type: string) =>
+              conditions.filter(
+                (item: any) => item.conditions[0].body.type === type
+              )
+            )
+            .filter((tmp: any[]) => tmp.length > 0)
+            .map((tmp: any[]) =>
+              renderPendingContent(tmp, tmp[0].conditions[0].body.type)
+            )
+            .join("");
+          setPendingContent(
+            `<div style='display:flex; flex-direction:column;gap:10px;'>${pendingContent}</div>`
+          );
+        }
 
-    queryStr = `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`;
-    axios.get(queryStr).then(({ data: { histories } }) => {
-      if (histories.length == 0) return;
-      const content = renderContent(histories);
-      setHistoryContent(content);
-    });
+        const historyResponse = await axios.get(
+          `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`
+        );
+        const { histories } = historyResponse.data;
+        if (histories.length > 0) {
+          const historyContent = renderContent(histories);
+          setHistoryContent(historyContent);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
   }, [mode, embeddedWallet]);
 
   useEffect(() => {
@@ -129,7 +206,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         const ethExternal = await provider.getBalance(externalWallet.address);
         const ethEmbedded = await provider.getBalance(embeddedWallet.address);
         for (let i = 0; i < Tokens.length; i++) {
-          if (Tokens[i].currency == "ETH") {
+          if (Tokens[i].currency === "ETH") {
             tmpExt.push(utils.formatEther(ethExternal));
             tmpEmb.push(utils.formatEther(ethEmbedded));
           } else {
@@ -188,7 +265,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
           </div>
           <Image alt="" src={Account} />
         </div>
-        {mode == 0 && (
+        {mode === 0 && (
           <div className="flex flex-col gap-7 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
               <div>Account</div>
@@ -217,7 +294,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
             </p>
           </div>
         )}
-        {mode == 1 && (
+        {mode === 1 && (
           <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
               <div>Funds</div>
@@ -260,7 +337,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
             ))}
           </div>
         )}
-        {mode == 2 && (
+        {mode === 2 && (
           <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
               <div>History</div>
@@ -274,7 +351,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
             <div dangerouslySetInnerHTML={{ __html: historyContent }} />
           </div>
         )}
-        {mode == 3 && (
+        {mode === 3 && (
           <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
             <div className="flex justify-between">
               <div>Pending Prompts</div>
@@ -304,7 +381,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
                 icon={item.icon}
                 color="white"
                 className={`p-2 ${
-                  mode == item.mode ? "bg-[#464B53]" : ""
+                  mode === item.mode ? "bg-[#464B53]" : ""
                 } rounded-md`}
                 width={40}
                 onClick={() => setMode(item.mode)}

@@ -8,6 +8,7 @@ import { useNetwork, useBalance } from "wagmi";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { BigNumber, ethers, providers, utils } from "ethers";
+import { Icon } from "@iconify/react";
 import {
   PROCESS_MESSAGE_API,
   WALLET_API_URL,
@@ -15,7 +16,7 @@ import {
 import Response, {
   Query,
   CONDITIONS,
-  Icon,
+  Icon as MyIcon,
   ProcessText,
   Stats,
 } from "@/components/Response";
@@ -102,7 +103,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
     value: "",
     id: "",
   });
-  const [iconArray, setIconArray] = useState<Icon[]>([]);
+  const [iconArray, setIconArray] = useState<MyIcon[]>([]);
   const [verifiedEntities, setVerifiedEntities] = useState<any>();
 
   useEffect(() => {
@@ -986,7 +987,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
         {mode === 0 && (
           <>
             <form
-              className="w-full p-3 rounded-[5px] bg-gray-900 border flex"
+              className="w-full p-3 rounded-[5px] bg-[#686D77] border-l-4 border-l-[#AEB1DD] flex"
               onSubmit={onSubmit}
             >
               <input
@@ -1001,7 +1002,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
                 <div className="loader" />
               ) : (
                 <button type="submit" className="ml-3">
-                  <Image src="/send.png" alt="send" width={24} height={24} />
+                  <Icon width={24} icon="lets-icons:send-hor-light" />
                 </button>
               )}
             </form>
