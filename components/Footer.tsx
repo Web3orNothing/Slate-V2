@@ -17,10 +17,10 @@ const CustomButton = styled("div")({
 const Footer = () => {
   return (
     <div
-      className="bg-cover h-[42px]"
+      className="bg-cover h-[32px] flex justify-center items-center"
       style={{ backgroundImage: `url(${FooterBg.src})` }}
     >
-      <div className="hidden sm:flex gap-1 justify-center text-white text-[12px] py-2">
+      <div className="hidden sm:flex gap-1 justify-center text-white text-[12px]">
         <CustomText>Hit</CustomText>
         <CustomButton>R</CustomButton>
         <CustomButton>R</CustomButton>

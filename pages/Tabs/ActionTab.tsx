@@ -41,7 +41,7 @@ import {
 import { chains } from "@/config/constants/Chains";
 import ERC20_ABI from "@/abis/erc20.abi.js";
 import HideLeft from "@/assets/HideLeft.svg";
-import { mockedUpQuery } from "@/config/constants/sampleQuery";
+import { mockedUpQuery } from "@/config/constants/emptyStatus";
 
 export type ActionProps = {
   mode: any;
@@ -854,16 +854,13 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   return (
     <div
       className={`${
-        !visible ? "flex w-full" : "hidden md:flex md:w-full"
-      } bg-[#383838] text-white min-h-[880px] px-12`}
+        !visible ? "flex w-full" : "hidden sm:flex sm:w-full"
+      } bg-[#383838] text-white min-h-[880px]`}
     >
-      <div
-        className="flex sm:hidden w-[24px]"
-        onClick={() => setVisible(!visible)}
-      >
+      <div className="flex sm:hidden px-1" onClick={() => setVisible(!visible)}>
         <Image className="p-1" width={18} src={HideLeft} alt="Hide Left" />
       </div>
-      <div className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center">
+      <div className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center px-4 md:px-12">
         <div className="w-full flex-1 my-6">
           {mode < 3 ? (
             queriesToShow.length > 0 ? (

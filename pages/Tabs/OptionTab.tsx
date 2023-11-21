@@ -5,12 +5,14 @@ import LeftArrow from "@/assets/LeftArrow.svg";
 import Account from "@/assets/Account.svg";
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
-import { useWallets } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { Tokens, TokenParam } from "@/config/constants/tokens";
 import { ethers, utils } from "ethers";
 import ERC20_ABI from "@/abis/erc20.abi";
 import axios from "axios";
 import { WALLET_API_URL } from "@/config/constants/backend";
+import { historyPrompts, pendingPrompts } from "@/config/constants/emptyStatus";
+import { Query } from "@/components/Response";
 
 export type TabProps = {
   visible: boolean;
@@ -36,10 +38,13 @@ const modeData = [
 const pendingTypes = ["gas", "price", "time", "marketcap", "balance"];
 
 const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
+  const { exportWallet } = usePrivy();
   const { wallets } = useWallets();
-  const [mode, setMode] = useState(0);
+  const [mode, setMode] = useState(1);
   const [extBalances, setExtBalances] = useState<string[]>([]);
   const [embBalances, setEmbBalances] = useState<string[]>([]);
+  const [historyCnt, setHistoryCnt] = useState(0);
+  const [pendingCnt, setPendingCnt] = useState(0);
   const [historyContent, setHistoryContent] = useState<string>("");
   const [pendingContent, setPendingContent] = useState<string>("");
 
@@ -70,8 +75,16 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
     return `${hours}:${minutes}`;
   };
 
+  const copyAddress = async (wallet: number) => {
+    if (!embeddedWallet || !externalWallet) return;
+    await navigator.clipboard.writeText(
+      (wallet === 0 ? embeddedWallet : externalWallet).address
+    );
+  };
+
   const renderContent = (items: any[]): string => {
-    let content = "<div>";
+    let content =
+      "<div style='display: flex; flex-direction: column; gap: 10px;'>";
     let currentDay: string | undefined;
 
     items.forEach((item: any) => {
@@ -101,7 +114,6 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
 
       content += itemContent;
     });
-
     content += "</div>";
     return content;
   };
@@ -155,6 +167,47 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
     return content;
   };
 
+  const renderFundsContent = (balances: any[]) => {
+    const displayData = Tokens.filter(
+      (item, id) => parseFloat(balances[id]) > 0
+    );
+    const flag = displayData.length > 0;
+    let content = `<div class="flex flex-col gap-4 ${
+      !flag ? "blur-[4px]" : ""
+    }">`;
+
+    content += (flag ? displayData : Tokens)
+      .map((item, id) => {
+        if (!flag && id === 2) return "<div style='height:24px;'></div>";
+        const balance = parseFloat(
+          flag ? balances[item.id] : "5.01240"
+        ).toFixed(4);
+        return `
+          <div class="flex justify-between items-center">
+            <div class="flex gap-3 items-center">
+              <img src="${item.icon.src}" alt="" />
+              <p>${item.name}</p>
+            </div>
+            <div>${balance} $${item.currency}</div>
+          </div>
+        `;
+      })
+      .join("");
+
+    content += "</div>";
+
+    if (!flag) {
+      content += `
+        <div style="display:flex;align-items:center;gap:12px;position:absolute;top:80px;">
+          <img src="${Tokens[2].icon.src}" alt="" />
+          <p>Deposit funds into your Slate wallet to view.</p>
+        </div>
+      `;
+    }
+
+    return content;
+  };
+
   useEffect(() => {
     if (!embeddedWallet) return;
 
@@ -163,33 +216,37 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         const conditionResponse = await axios.get(
           `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`
         );
-        console.log(conditionResponse);
         const { conditions } = conditionResponse.data;
-        if (conditions.length > 0) {
-          const pendingContent = pendingTypes
-            .map((type: string) =>
-              conditions.filter(
-                (item: any) => item.conditions[0].body.type === type
-              )
+        setPendingCnt(conditions.length);
+
+        const displayData = pendingTypes
+          .map((type) =>
+            (conditions.length > 0 ? conditions : pendingPrompts).filter(
+              (item: Query) => item.conditions[0].body.type === type
             )
-            .filter((tmp: any[]) => tmp.length > 0)
-            .map((tmp: any[]) =>
-              renderPendingContent(tmp, tmp[0].conditions[0].body.type)
-            )
-            .join("");
-          setPendingContent(
-            `<div style='display:flex; flex-direction:column;gap:10px;'>${pendingContent}</div>`
-          );
-        }
+          )
+          .filter((tmp) => tmp.length > 0);
+
+        const tmpContent = displayData
+          .map((tmp) =>
+            renderPendingContent(tmp, tmp[0].conditions[0].body.type)
+          )
+          .join("");
+
+        setPendingContent(
+          `<div style='display: flex; flex-direction: column; gap: 10px;'>${tmpContent}</div>`
+        );
 
         const historyResponse = await axios.get(
           `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`
         );
         const { histories } = historyResponse.data;
-        if (histories.length > 0) {
-          const historyContent = renderContent(histories);
-          setHistoryContent(historyContent);
-        }
+        setHistoryCnt(histories.length);
+
+        const historyContent = renderContent(
+          histories.length > 0 ? histories : historyPrompts
+        );
+        setHistoryContent(historyContent);
       } catch (error) {
         console.log(error);
       }
@@ -239,18 +296,13 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
       <div
         className={`${
           visible
-            ? "flex text-[12px] py-8 px-4 bg-[#181818] w-full md:w-auto min-h-[880px]"
+            ? "flex text-[12px] py-8 px-4 bg-[#181818] w-full sm:w-[300px] md:w-auto min-h-[880px]"
             : "hidden py-8 px-4 bg-[#181818] w-full h-full min-h-[880px]"
         }`}
       >
         <div className="flex flex-col justify-between w-[50px]">
           <div className="flex flex-col gap-6">
-            <Image
-              className="pb-8"
-              src={Logo1}
-              alt="Logo1"
-              onClick={() => setMode(0)}
-            />
+            <Image className="pb-8" src={Logo1} alt="Logo1" />
             {modeData.map((item: any, id) => (
               <Icon
                 key={id}
@@ -264,7 +316,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
               />
             ))}
           </div>
-          <Image alt="" src={Account} />
+          <Image alt="" src={Account} onClick={() => setMode(0)} />
         </div>
         {mode === 0 && (
           <div className="flex flex-col gap-7 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
@@ -272,23 +324,31 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
               <div className="text-[16px]">Account</div>
               <Image
                 alt=""
-                className="flex cursor-pointer"
+                className="flex sm:hidden cursor-pointer"
                 onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
             <p className="text-gray-400">Wallets</p>
-            <div className="flex justify-between">
+            <div
+              className="flex justify-between cursor-pointer"
+              onClick={() => copyAddress(0)}
+            >
               <div>Slate</div>
               <div>{makeAddr(embeddedWallet?.address)}</div>
             </div>
-            <div className="flex justify-between">
+            <div
+              className="flex justify-between cursor-pointer"
+              onClick={() => copyAddress(1)}
+            >
               <div>External</div>
               <div>{makeAddr(externalWallet?.address)}</div>
             </div>
             <p className="text-gray-400">Actions</p>
             <p>Fund Account</p>
-            <p>Export Private Key</p>
+            <div className="cursor-pointer" onClick={exportWallet}>
+              Export Private Key
+            </div>
             <p>Withdraw to External Wallet</p>
             <p className="cursor-pointer" onClick={handleDisconnect}>
               Disconnect External Wallet
@@ -301,49 +361,37 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
               <div className="text-[16px]">Funds</div>
               <Image
                 alt=""
-                className="flex cursor-pointer"
+                className="flex sm:hidden cursor-pointer"
                 onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
-            <p className="text-gray-500">
+            <p
+              className="text-gray-500 cursor-pointer"
+              // onMouseEnter={() => copyAddress(0)}
+              onClick={() => copyAddress(0)}
+            >
               Slate Wallet ({makeAddr(embeddedWallet?.address)})
             </p>
-            {Tokens.filter((item, id) => parseFloat(embBalances[id]) > 0).map(
-              (item, id) => {
-                const embBalance = parseFloat(embBalances[item.id]).toFixed(4);
-                return (
-                  <div key={id} className="flex justify-between items-center">
-                    <div className="flex gap-3 items-center">
-                      <Image alt="" className="flex" src={item.icon} />
-                      <p>{item.name}</p>
-                    </div>
-                    <div>
-                      {embBalance} ${item.currency}
-                    </div>
-                  </div>
-                );
-              }
-            )}
-            <p className="text-gray-500">
+            <div
+              style={{ position: "relative" }}
+              dangerouslySetInnerHTML={{
+                __html: renderFundsContent(embBalances),
+              }}
+            />
+            <p
+              className="text-gray-500 cursor-pointer"
+              // onMouseEnter={() => copyAddress(1)}
+              onClick={() => copyAddress(1)}
+            >
               Connected Wallet ({makeAddr(externalWallet?.address)})
             </p>
-            {Tokens.filter((item, id) => parseFloat(extBalances[id]) > 0).map(
-              (item, id) => {
-                const extBalance = parseFloat(extBalances[item.id]).toFixed(4);
-                return (
-                  <div key={id} className="flex justify-between items-center">
-                    <div className="flex gap-3 items-center">
-                      <Image alt="" className="flex" src={item.icon} />
-                      <p>{item.name}</p>
-                    </div>
-                    <div>
-                      {extBalance} ${item.currency}
-                    </div>
-                  </div>
-                );
-              }
-            )}
+            <div
+              style={{ position: "relative" }}
+              dangerouslySetInnerHTML={{
+                __html: renderFundsContent(extBalances),
+              }}
+            />
           </div>
         )}
         {mode === 2 && (
@@ -352,12 +400,20 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
               <div className="text-[16px]">History</div>
               <Image
                 alt=""
-                className="flex cursor-pointer"
+                className="flex sm:hidden cursor-pointer"
                 onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
-            <div dangerouslySetInnerHTML={{ __html: historyContent }} />
+            <div
+              style={historyCnt ? {} : { filter: "blur(4px)" }}
+              dangerouslySetInnerHTML={{ __html: historyContent }}
+            />
+            {historyCnt === 0 && (
+              <div style={{ position: "absolute", top: "30%" }}>
+                Execute your first prompt to see it here!
+              </div>
+            )}
           </div>
         )}
         {mode === 3 && (
@@ -366,24 +422,27 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
               <div className="text-[16px]">Pending Prompts</div>
               <Image
                 alt=""
-                className="flex cursor-pointer"
+                className="flex sm:hidden cursor-pointer"
                 onClick={() => setVisible(!visible)}
                 src={LeftArrow}
               />
             </div>
-            <div dangerouslySetInnerHTML={{ __html: pendingContent }} />
+            <div
+              style={pendingCnt ? {} : { filter: "blur(4px)" }}
+              dangerouslySetInnerHTML={{ __html: pendingContent }}
+            />
+            {pendingCnt === 0 && (
+              <div style={{ position: "absolute", top: "30%" }}>
+                Execute your first conditional prompt to see it here!
+              </div>
+            )}
           </div>
         )}
       </div>
       {!visible && (
         <div className="hidden sm:flex flex-col items-center justify-between px-4 py-8 bg-[#181818]">
           <div className="flex flex-col gap-6">
-            <Image
-              alt=""
-              className="pb-8 cursor-pointer"
-              src={Logo1}
-              onClick={() => setVisible(!visible)}
-            />
+            <Image alt="" className="pb-8 cursor-pointer" src={Logo1} />
             {modeData.map((item: any, id) => (
               <Icon
                 key={id}
@@ -393,11 +452,10 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
                   mode === item.mode ? "bg-[#464B53]" : ""
                 } rounded-md`}
                 width={40}
-                onClick={() => setMode(item.mode)}
               />
             ))}
           </div>
-          <Image alt="" src={Account} />
+          <Image alt="" src={Account} onClick={() => setMode(0)} />
         </div>
       )}
     </>
