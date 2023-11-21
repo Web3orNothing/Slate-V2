@@ -2,6 +2,7 @@ import Image from "next/image";
 
 import Logo1 from "@/assets/Logo1.svg";
 import LeftArrow from "@/assets/LeftArrow.svg";
+import AccountInactive from "@/assets/Account-inactive.svg";
 import Account from "@/assets/Account.svg";
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
@@ -173,7 +174,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
     );
     const flag = displayData.length > 0;
     let content = `<div class="flex flex-col gap-4 ${
-      !flag ? "blur-[4px]" : ""
+      !flag ? "blur-[4px] select-none" : ""
     }">`;
 
     content += (flag ? displayData : Tokens)
@@ -296,8 +297,8 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
       <div
         className={`${
           visible
-            ? "flex text-[12px] py-8 px-4 bg-[#181818] w-full sm:w-[300px] md:w-auto min-h-[880px]"
-            : "hidden py-8 px-4 bg-[#181818] w-full h-full min-h-[880px]"
+            ? "flex text-[12px] py-8 px-4 bg-[#181818] w-full sm:w-[300px] md:w-auto"
+            : "hidden py-8 px-4 bg-[#181818] w-full h-full"
         }`}
       >
         <div className="flex flex-col justify-between w-[50px]">
@@ -316,128 +317,144 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
               />
             ))}
           </div>
-          <Image alt="" src={Account} onClick={() => setMode(0)} />
+          <Image
+            alt=""
+            src={!mode ? Account : AccountInactive}
+            onClick={() => setMode(0)}
+          />
         </div>
-        {mode === 0 && (
-          <div className="flex flex-col gap-7 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
-            <div className="flex justify-between">
-              <div className="text-[16px]">Account</div>
-              <Image
-                alt=""
-                className="flex sm:hidden cursor-pointer"
-                onClick={() => setVisible(!visible)}
-                src={LeftArrow}
-              />
-            </div>
-            <p className="text-gray-400">Wallets</p>
-            <div
-              className="flex justify-between cursor-pointer"
-              onClick={() => copyAddress(0)}
-            >
-              <div>Slate</div>
-              <div>{makeAddr(embeddedWallet?.address)}</div>
-            </div>
-            <div
-              className="flex justify-between cursor-pointer"
-              onClick={() => copyAddress(1)}
-            >
-              <div>External</div>
-              <div>{makeAddr(externalWallet?.address)}</div>
-            </div>
-            <p className="text-gray-400">Actions</p>
-            <p>Fund Account</p>
-            <div className="cursor-pointer" onClick={exportWallet}>
-              Export Private Key
-            </div>
-            <p>Withdraw to External Wallet</p>
-            <p className="cursor-pointer" onClick={handleDisconnect}>
-              Disconnect External Wallet
-            </p>
-          </div>
-        )}
-        {mode === 1 && (
-          <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
-            <div className="flex justify-between">
-              <div className="text-[16px]">Funds</div>
-              <Image
-                alt=""
-                className="flex sm:hidden cursor-pointer"
-                onClick={() => setVisible(!visible)}
-                src={LeftArrow}
-              />
-            </div>
-            <p
-              className="text-gray-500 cursor-pointer"
-              // onMouseEnter={() => copyAddress(0)}
-              onClick={() => copyAddress(0)}
-            >
-              Slate Wallet ({makeAddr(embeddedWallet?.address)})
-            </p>
-            <div
-              style={{ position: "relative" }}
-              dangerouslySetInnerHTML={{
-                __html: renderFundsContent(embBalances),
-              }}
-            />
-            <p
-              className="text-gray-500 cursor-pointer"
-              // onMouseEnter={() => copyAddress(1)}
-              onClick={() => copyAddress(1)}
-            >
-              Connected Wallet ({makeAddr(externalWallet?.address)})
-            </p>
-            <div
-              style={{ position: "relative" }}
-              dangerouslySetInnerHTML={{
-                __html: renderFundsContent(extBalances),
-              }}
-            />
-          </div>
-        )}
-        {mode === 2 && (
-          <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
-            <div className="flex justify-between">
-              <div className="text-[16px]">History</div>
-              <Image
-                alt=""
-                className="flex sm:hidden cursor-pointer"
-                onClick={() => setVisible(!visible)}
-                src={LeftArrow}
-              />
-            </div>
-            <div
-              style={historyCnt ? {} : { filter: "blur(4px)" }}
-              dangerouslySetInnerHTML={{ __html: historyContent }}
-            />
-            {historyCnt === 0 && (
-              <div style={{ position: "absolute", top: "30%" }}>
-                Execute your first prompt to see it here!
+        <div
+          style={{
+            height: "calc(100vh - 96px)",
+            overflowY: "auto",
+            width: "100%",
+          }}
+        >
+          {mode === 0 && (
+            <div className="flex flex-col px-4 gap-7 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex justify-between">
+                <div className="text-[16px]">Account</div>
+                <Image
+                  alt=""
+                  className="flex sm:hidden cursor-pointer"
+                  onClick={() => setVisible(!visible)}
+                  src={LeftArrow}
+                />
               </div>
-            )}
-          </div>
-        )}
-        {mode === 3 && (
-          <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-full md:w-[300px] lg:w-[360px]">
-            <div className="flex justify-between">
-              <div className="text-[16px]">Pending Prompts</div>
-              <Image
-                alt=""
-                className="flex sm:hidden cursor-pointer"
-                onClick={() => setVisible(!visible)}
-                src={LeftArrow}
+              <p className="text-gray-400">Wallets</p>
+              <div
+                className="flex justify-between cursor-pointer"
+                onClick={() => copyAddress(0)}
+              >
+                <div>Slate</div>
+                <div>{makeAddr(embeddedWallet?.address)}</div>
+              </div>
+              <div
+                className="flex justify-between cursor-pointer"
+                onClick={() => copyAddress(1)}
+              >
+                <div>External</div>
+                <div>{makeAddr(externalWallet?.address)}</div>
+              </div>
+              <p className="text-gray-400">Actions</p>
+              <p>Fund Account</p>
+              <div className="cursor-pointer" onClick={exportWallet}>
+                Export Private Key
+              </div>
+              <p>Withdraw to External Wallet</p>
+              <p className="cursor-pointer" onClick={handleDisconnect}>
+                Disconnect External Wallet
+              </p>
+            </div>
+          )}
+          {mode === 1 && (
+            <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex justify-between">
+                <div className="text-[16px]">Funds</div>
+                <Image
+                  alt=""
+                  className="flex sm:hidden cursor-pointer"
+                  onClick={() => setVisible(!visible)}
+                  src={LeftArrow}
+                />
+              </div>
+              <p
+                className="text-gray-500 cursor-pointer"
+                // onMouseEnter={() => copyAddress(0)}
+                onClick={() => copyAddress(0)}
+              >
+                Slate Wallet ({makeAddr(embeddedWallet?.address)})
+              </p>
+              <div
+                style={{ position: "relative" }}
+                dangerouslySetInnerHTML={{
+                  __html: renderFundsContent(embBalances),
+                }}
+              />
+              <p
+                className="text-gray-500 cursor-pointer"
+                // onMouseEnter={() => copyAddress(1)}
+                onClick={() => copyAddress(1)}
+              >
+                Connected Wallet ({makeAddr(externalWallet?.address)})
+              </p>
+              <div
+                style={{ position: "relative" }}
+                dangerouslySetInnerHTML={{
+                  __html: renderFundsContent(extBalances),
+                }}
               />
             </div>
-            <div
-              style={pendingCnt ? {} : { filter: "blur(4px)" }}
-              dangerouslySetInnerHTML={{ __html: pendingContent }}
-            />
-            {pendingCnt === 0 && (
-              <div style={{ position: "absolute", top: "30%" }}>
-                Execute your first conditional prompt to see it here!
+          )}
+          {mode === 2 && (
+            <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex justify-between">
+                <div className="text-[16px]">History</div>
+                <Image
+                  alt=""
+                  className="flex sm:hidden cursor-pointer"
+                  onClick={() => setVisible(!visible)}
+                  src={LeftArrow}
+                />
               </div>
-            )}
-          </div>
-        )}
+              <div
+                style={
+                  historyCnt ? {} : { filter: "blur(4px)", userSelect: "none" }
+                }
+                dangerouslySetInnerHTML={{ __html: historyContent }}
+              />
+              {historyCnt === 0 && (
+                <div style={{ position: "absolute", top: "30%" }}>
+                  Execute your first prompt to see it here!
+                </div>
+              )}
+            </div>
+          )}
+          {mode === 3 && (
+            <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex justify-between">
+                <div className="text-[16px]">Pending Prompts</div>
+                <Image
+                  alt=""
+                  className="flex sm:hidden cursor-pointer"
+                  onClick={() => setVisible(!visible)}
+                  src={LeftArrow}
+                />
+              </div>
+              <div
+                style={
+                  pendingCnt ? {} : { filter: "blur(4px)", userSelect: "none" }
+                }
+                dangerouslySetInnerHTML={{ __html: pendingContent }}
+              />
+              {pendingCnt === 0 && (
+                <div style={{ position: "absolute", top: "30%" }}>
+                  Execute your first conditional prompt to see it here!
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       {!visible && (
         <div className="hidden sm:flex flex-col items-center justify-between px-4 py-8 bg-[#181818]">

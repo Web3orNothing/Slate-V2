@@ -855,13 +855,16 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
     <div
       className={`${
         !visible ? "flex w-full" : "hidden sm:flex sm:w-full"
-      } bg-[#383838] text-white min-h-[880px]`}
+      } bg-[#383838] text-white`}
     >
       <div className="flex sm:hidden px-1" onClick={() => setVisible(!visible)}>
         <Image className="p-1" width={18} src={HideLeft} alt="Hide Left" />
       </div>
-      <div className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center px-4 md:px-12">
-        <div className="w-full flex-1 my-6">
+      <div
+        className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center px-4 md:px-8"
+        style={{ height: "calc(100vh - 32px)" }}
+      >
+        <div className="w-full flex-1 my-6 px-2 overflow-y-auto">
           {mode < 3 ? (
             queriesToShow.length > 0 ? (
               queriesToShow.map((query) => (
@@ -883,7 +886,13 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
             ) : (
               <div>
                 <div>Send in your first prompt below!</div>
-                <div style={{ filter: "blur(6px)", pointerEvents: "none" }}>
+                <div
+                  style={{
+                    filter: "blur(6px)",
+                    pointerEvents: "none",
+                    userSelect: "none",
+                  }}
+                >
                   {mockedUpQuery.map((query) => (
                     <Response
                       key={query.id}

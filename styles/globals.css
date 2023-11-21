@@ -44,3 +44,25 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* Hide the default scrollbar */
+::-webkit-scrollbar {
+  width: 8px; /* Set the width of the scrollbar */
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f130; /* Set a background color for the track */
+  border-radius: 4px; /* Rounded corners */
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888; /* Set a background color for the scrollbar handle */
+  border-radius: 4px; /* Rounded corners */
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa; /* Set a darker background color when hovering over the scrollbar handle */
+}
