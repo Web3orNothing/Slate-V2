@@ -63,15 +63,15 @@ type ResponseProps = {
   statsText: Stats;
   processText: ProcessText;
   iconArray: Icon[];
-  verifiedData: any;
-  handleChangeParams: (
+  verifiedData?: any;
+  handleChangeParams?: (
     id: string,
     index: number,
     key: string,
     value: string
   ) => void;
   onSubmit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
   // onCancel: (id: string) => void;
 };
 
@@ -186,10 +186,10 @@ ResponseProps) {
 
   const rows = useMemo(() => {
     const group = groupConditions(calls);
-    // if (mode > 0) return [{ actions, conditions }];
+    if (mode > 0) return [{ actions, conditions }];
     if (!group) return [{ actions, conditions: [] }];
     return group;
-  }, [actions, calls, conditions]);
+  }, [actions, calls, conditions, mode]);
 
   const getIcon = (key: string, value: string) => {
     if (
@@ -220,7 +220,9 @@ ResponseProps) {
           />
         )}
       </div>
-      <div className="border-l-4 px-4 border-[#AEB1DD]">
+      <div
+        className={`${mode === 0 ? "border-l-4 px-4 border-[#AEB1DD]" : ""}`}
+      >
         <div className="text-left flex items-center">{description}&nbsp;</div>
         {rows.map((row, rowIndex) => (
           <div key={rowIndex}>
@@ -234,7 +236,11 @@ ResponseProps) {
                     {Object.entries(x.args).map(([key, value], i) => (
                       <Typography
                         key={key}
-                        style={{ display: "flex", alignItems: "center" }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          fontSize: "12px",
+                        }}
                         aria-owns="mouse-over-popover"
                         aria-haspopup="true"
                       >
@@ -250,7 +256,7 @@ ResponseProps) {
                             }}
                             value={value}
                             onChange={(ev: React.FormEvent<HTMLInputElement>) =>
-                              handleChangeParams(
+                              handleChangeParams?.(
                                 query.id,
                                 index,
                                 key,
@@ -259,7 +265,9 @@ ResponseProps) {
                             }
                           />
                         ) : (
-                          value || <i className="text-gray-500">TBD</i>
+                          (
+                            <p style={{ overflowWrap: "anywhere" }}>{value}</p>
+                          ) || <i className="text-gray-500">TBD</i>
                         )}
                         &nbsp;
                         {
@@ -371,7 +379,7 @@ ResponseProps) {
             getLastTxHashes(rows) === undefined &&
             !mode &&
             !isCanceled && (
-              <button disabled={isPending} onClick={() => onDelete(query.id)}>
+              <button disabled={isPending} onClick={() => onDelete?.(query.id)}>
                 <Image src={deleteImg} width={15} height={15} alt="delete" />
               </button>
             )}
@@ -404,7 +412,7 @@ ResponseProps) {
   );
 }
 
-const DotIndent = () => <span>&nbsp;•&nbsp;</span>;
+const DotIndent = () => <span className="">&nbsp;•&nbsp;</span>;
 const EmptyIndent = () => <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>;
 const TxIndicator = (props: any) => (
   <span className="flex items-center">

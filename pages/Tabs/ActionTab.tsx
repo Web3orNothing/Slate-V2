@@ -850,7 +850,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const queriesToShow = useMemo(() => {
     return [mainQueries, []][mode].filter((x) => !hiddenIds.includes(x.id));
   }, [hiddenIds, mainQueries, mode]);
-  console.log(mainQueries);
+
   return (
     <div
       className={`${
@@ -1021,8 +1021,8 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
             >
               <input
                 type="text"
-                className="flex-1 bg-transparent outline-none"
-                placeholder="Enter your command here"
+                className="flex-1 bg-transparent outline-none caret-blue-600"
+                placeholder="Type an operation"
                 value={command}
                 disabled={isSubmitting}
                 onChange={(e) => setCommand(e.target.value)}

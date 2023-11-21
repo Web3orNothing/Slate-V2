@@ -68,6 +68,7 @@ const Home = () => {
       {connected && address ? (
         <div className="flex w-full overflow-hidden">
           <OptionTab
+            connected={connected}
             visible={visible}
             handleDisconnect={handleDisconnect}
             setVisible={setVisible}

@@ -13,12 +13,26 @@ import ERC20_ABI from "@/abis/erc20.abi";
 import axios from "axios";
 import { WALLET_API_URL } from "@/config/constants/backend";
 import { historyPrompts, pendingPrompts } from "@/config/constants/emptyStatus";
-import { Query } from "@/components/Response";
+import Response, { Icon as MyIcon, Query } from "@/components/Response";
+import { getIconFromToken } from "@/utils";
+import { styled } from "@mui/material/styles";
 
 export type TabProps = {
+  connected: boolean;
   visible: boolean;
   handleDisconnect: () => void;
   setVisible: (val: boolean) => void;
+};
+
+export type CopyIcon = {
+  wallet: string;
+  icon: number;
+  visible: boolean;
+};
+
+export type PendingPrompt = {
+  type: string;
+  data: any[];
 };
 
 const modeData = [
@@ -38,7 +52,37 @@ const modeData = [
 
 const pendingTypes = ["gas", "price", "time", "marketcap", "balance"];
 
-const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
+const WalletButton = styled("div")({
+  padding: "8px 8px",
+});
+
+const ActionButton = styled("div")({
+  padding: "8px 8px",
+  borderRadius: "4px",
+  cursor: "pointer",
+  "&:hover": {
+    background: "gray",
+  },
+});
+
+const Referral = styled("div")({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  background: "#4d4e5e",
+  color: "#AEB1DD",
+  fontWeight: "bold",
+  padding: "12px",
+  margin: "12px",
+  borderRadius: "10px",
+});
+
+const OptionTab = ({
+  connected,
+  visible,
+  handleDisconnect,
+  setVisible,
+}: TabProps) => {
   const { exportWallet } = usePrivy();
   const { wallets } = useWallets();
   const [mode, setMode] = useState(1);
@@ -47,7 +91,21 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
   const [historyCnt, setHistoryCnt] = useState(0);
   const [pendingCnt, setPendingCnt] = useState(0);
   const [historyContent, setHistoryContent] = useState<string>("");
-  const [pendingContent, setPendingContent] = useState<string>("");
+  const [addrIcon, setAddrIcon] = useState<CopyIcon>();
+  const [pendingData, setPendingData] = useState<PendingPrompt[]>([]);
+  const [pendingQueries, setPendingQueries] = useState<Query[]>([]);
+  const [historyData, setHistoryData] = useState<PendingPrompt[]>([]);
+  const [historyQueries, setHistoryQueries] = useState<Query[]>([]);
+  const [currentHistoryData, setCurrentHistoryData] = useState<{
+    index: number;
+    id: number;
+  }>();
+  const [currentPendingData, setCurrentPendingData] = useState<{
+    index: number;
+    id: number;
+  }>();
+  const [iconArray, setIconArray] = useState<MyIcon[]>([]);
+  const [verifiedEntities, setVerifiedEntities] = useState<any>();
 
   const externalWallet = useMemo(
     () => (wallets || []).find((x: any) => x.walletClientType !== "privy"),
@@ -76,96 +134,50 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
     return `${hours}:${minutes}`;
   };
 
-  const copyAddress = async (wallet: number) => {
+  const copyAddress = async (wallet: string) => {
     if (!embeddedWallet || !externalWallet) return;
+    setAddrIcon({ wallet, icon: 1, visible: true });
     await navigator.clipboard.writeText(
-      (wallet === 0 ? embeddedWallet : externalWallet).address
+      (wallet === "slate" ? embeddedWallet : externalWallet).address
     );
   };
 
-  const renderContent = (items: any[]): string => {
-    let content =
-      "<div style='display: flex; flex-direction: column; gap: 10px;'>";
-    let currentDay: string | undefined;
-
-    items.forEach((item: any) => {
-      const date = new Date(item.timestamp);
-      const formattedDate = formatDate(date);
-
-      if (currentDay !== formattedDate) {
-        currentDay = formattedDate;
-        content += `
-          <div style="color: gray">${formattedDate}</div>
-        `;
+  const cancelCondition = async (query: Query) => {
+    await axios.post(
+      `${WALLET_API_URL}/update-status`,
+      {
+        accountAddress: externalWallet?.address,
+        conditionId: query.conditionId,
+        status: query.status,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
       }
-
-      const itemContent = `
-        <div style="display:flex;width:100%;justify-content:space-between;">
-          <div style="
-            max-width: 50%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          ">
-            ${item.query.message}
-          </div>
-          <div>${formatTime(date)}</div>
-        </div>
-      `;
-
-      content += itemContent;
-    });
-    content += "</div>";
-    return content;
+    );
   };
 
-  const renderPendingContent = (items: any[], type: string): string => {
-    const capitalizeType = type.charAt(0).toUpperCase() + type.slice(1);
+  const showCondition = (query: any, type: string) => {
+    let showData = "";
+    const conditions = query.conditions[0].args;
 
-    let content = `
-      <div style="color: gray;">${capitalizeType}</div>
-    `;
-
-    items.forEach((item: any) => {
-      let showData = "";
-      const conditions = item.conditions[0].args;
-
-      switch (type) {
-        case "gas":
-          showData = `${conditions.value} GWEI`;
-          break;
-        case "price":
-          showData = `\$${
-            conditions.value
-          } ${conditions.subject.toUpperCase()}`;
-          break;
-        case "time":
-          showData = `${formatTime(new Date(conditions.start_time))} UTC`;
-          break;
-        case "marketcap":
-          showData = `${conditions.value} USD`;
-          break;
-        case "balance":
-          showData = `${conditions.value} ${conditions.subject.toUpperCase()}`;
-          break;
-      }
-
-      content += `
-        <div style="display:flex;width:100%;justify-content:space-between;">
-          <div style="
-            max-width: 50%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          ">
-            ${item.query.message}
-          </div>
-          <div>@ ${showData}</div>
-        </div>
-      `;
-    });
-
-    return content;
+    switch (type) {
+      case "gas":
+        showData = `${conditions.value} GWEI`;
+        break;
+      case "price":
+        showData = `\$${conditions.value} ${conditions.subject.toUpperCase()}`;
+        break;
+      case "time":
+        showData = `${formatTime(new Date(conditions.start_time))} UTC`;
+        break;
+      case "marketcap":
+        showData = `${conditions.value} USD`;
+        break;
+      case "balance":
+        showData = `${conditions.value} ${conditions.subject.toUpperCase()}`;
+        break;
+    }
+    return showData;
   };
 
   const renderFundsContent = (balances: any[]) => {
@@ -210,51 +222,124 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
   };
 
   useEffect(() => {
-    if (!embeddedWallet) return;
-
-    const fetchData = async () => {
-      try {
-        const conditionResponse = await axios.get(
-          `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`
-        );
-        const { conditions } = conditionResponse.data;
-        setPendingCnt(conditions.length);
-
-        const displayData = pendingTypes
-          .map((type) =>
-            (conditions.length > 0 ? conditions : pendingPrompts).filter(
-              (item: Query) => item.conditions[0].body.type === type
-            )
-          )
-          .filter((tmp) => tmp.length > 0);
-
-        const tmpContent = displayData
-          .map((tmp) =>
-            renderPendingContent(tmp, tmp[0].conditions[0].body.type)
-          )
-          .join("");
-
-        setPendingContent(
-          `<div style='display: flex; flex-direction: column; gap: 10px;'>${tmpContent}</div>`
-        );
-
-        const historyResponse = await axios.get(
-          `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`
-        );
-        const { histories } = historyResponse.data;
-        setHistoryCnt(histories.length);
-
-        const historyContent = renderContent(
-          histories.length > 0 ? histories : historyPrompts
-        );
-        setHistoryContent(historyContent);
-      } catch (error) {
-        console.log(error);
-      }
+    const fetchEntities = async () => {
+      const res = await axios.get(`${WALLET_API_URL}/verified-entities`);
+      setVerifiedEntities(res.data);
     };
+    fetchEntities();
+  }, []);
 
-    fetchData();
-  }, [mode, embeddedWallet]);
+  useEffect(() => {
+    historyQueries.map((x) => {
+      x.actions.map((act) => {
+        Object.entries(act.args).map(async ([key, value]) => {
+          if (
+            !iconArray.find((x) => x.coin === value) &&
+            (key.toLowerCase().includes("token") ||
+              key.toLowerCase().includes("chain"))
+          ) {
+            const url = await getIconFromToken(value);
+            setIconArray([...iconArray, { coin: value, image: url }]);
+          }
+        });
+      });
+    });
+
+    pendingQueries.map((x) => {
+      x.actions.map((act) => {
+        Object.entries(act.args).map(async ([key, value]) => {
+          if (
+            !iconArray.find((x) => x.coin === value) &&
+            (key.toLowerCase().includes("token") ||
+              key.toLowerCase().includes("chain"))
+          ) {
+            const url = await getIconFromToken(value);
+            setIconArray([...iconArray, { coin: value, image: url }]);
+          }
+        });
+      });
+    });
+  }, [historyQueries, pendingQueries, iconArray]);
+
+  useEffect(() => {
+    if (!embeddedWallet) return;
+    try {
+      axios
+        .get(
+          `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`
+        )
+        .then(({ data: { conditions } }) => {
+          setPendingQueries([
+            ...conditions.map((x: any) => ({
+              ...x.query,
+              id: `c${x.id}`,
+              conditions: x.conditions,
+              actions: x.actions,
+              calls: x.query.calls,
+              conditionId: x.id,
+              simstatus: x.simstatus,
+            })),
+          ]);
+
+          setPendingCnt(conditions.length);
+          const displayData = pendingTypes
+            .map((type) =>
+              (conditions.length > 0 ? pendingQueries : pendingPrompts).filter(
+                (item: Query) => item.conditions[0].body.type === type
+              )
+            )
+            .filter((tmp) => tmp.length > 0);
+
+          console.log(displayData);
+          const tmpData: PendingPrompt[] = [];
+          displayData.forEach((item) => {
+            tmpData.push({
+              type: item[0].conditions[0].body.type,
+              data: item,
+            });
+          });
+
+          setPendingData(tmpData);
+        });
+
+      axios
+        .get(
+          `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`
+        )
+        .then(({ data: { histories } }) => {
+          console.log(histories);
+          setHistoryCnt(histories.length);
+          setHistoryQueries([
+            ...histories.map((x: any) => ({
+              ...x.query,
+              id: `h${x.id}`,
+              conditions: x.conditions,
+              actions: x.actions,
+              timestamp: x.timestamp,
+            })),
+          ]);
+
+          const displayData = histories.length > 0 ? histories : historyPrompts;
+          let curDay: string = "";
+          const tmpData: PendingPrompt[] = [];
+          let tmp: any[] = [];
+          curDay = formatDate(new Date(displayData[0].timestamp));
+          displayData.map((item: any) => {
+            const date = new Date(item.timestamp);
+            const formattedDate = formatDate(date);
+            if (curDay !== formattedDate) {
+              tmpData.push({ type: curDay, data: tmp });
+              tmp = [];
+              curDay = formattedDate;
+            }
+            tmp.push(item);
+          });
+          setHistoryData(tmpData);
+        });
+    } catch (error) {
+      console.log(error);
+    }
+  }, [connected]);
 
   useEffect(() => {
     if (embeddedWallet && externalWallet) {
@@ -326,134 +411,361 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
         <div
           style={{
             height: "calc(100vh - 96px)",
-            overflowY: "auto",
             width: "100%",
           }}
         >
-          {mode === 0 && (
-            <div className="flex flex-col px-4 gap-7 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
-              <div className="flex justify-between">
-                <div className="text-[16px]">Account</div>
-                <Image
-                  alt=""
-                  className="flex sm:hidden cursor-pointer"
-                  onClick={() => setVisible(!visible)}
-                  src={LeftArrow}
-                />
-              </div>
-              <p className="text-gray-400">Wallets</p>
-              <div
-                className="flex justify-between cursor-pointer"
-                onClick={() => copyAddress(0)}
-              >
-                <div>Slate</div>
-                <div>{makeAddr(embeddedWallet?.address)}</div>
-              </div>
-              <div
-                className="flex justify-between cursor-pointer"
-                onClick={() => copyAddress(1)}
-              >
-                <div>External</div>
-                <div>{makeAddr(externalWallet?.address)}</div>
-              </div>
-              <p className="text-gray-400">Actions</p>
-              <p>Fund Account</p>
-              <div className="cursor-pointer" onClick={exportWallet}>
-                Export Private Key
-              </div>
-              <p>Withdraw to External Wallet</p>
-              <p className="cursor-pointer" onClick={handleDisconnect}>
-                Disconnect External Wallet
-              </p>
-            </div>
-          )}
-          {mode === 1 && (
-            <div className="flex flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
-              <div className="flex justify-between">
-                <div className="text-[16px]">Funds</div>
-                <Image
-                  alt=""
-                  className="flex sm:hidden cursor-pointer"
-                  onClick={() => setVisible(!visible)}
-                  src={LeftArrow}
-                />
-              </div>
-              <p
-                className="text-gray-500 cursor-pointer"
-                // onMouseEnter={() => copyAddress(0)}
-                onClick={() => copyAddress(0)}
-              >
-                Slate Wallet ({makeAddr(embeddedWallet?.address)})
-              </p>
-              <div
-                style={{ position: "relative" }}
-                dangerouslySetInnerHTML={{
-                  __html: renderFundsContent(embBalances),
-                }}
-              />
-              <p
-                className="text-gray-500 cursor-pointer"
-                // onMouseEnter={() => copyAddress(1)}
-                onClick={() => copyAddress(1)}
-              >
-                Connected Wallet ({makeAddr(externalWallet?.address)})
-              </p>
-              <div
-                style={{ position: "relative" }}
-                dangerouslySetInnerHTML={{
-                  __html: renderFundsContent(extBalances),
-                }}
-              />
-            </div>
-          )}
-          {mode === 2 && (
-            <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
-              <div className="flex justify-between">
-                <div className="text-[16px]">History</div>
-                <Image
-                  alt=""
-                  className="flex sm:hidden cursor-pointer"
-                  onClick={() => setVisible(!visible)}
-                  src={LeftArrow}
-                />
-              </div>
-              <div
-                style={
-                  historyCnt ? {} : { filter: "blur(4px)", userSelect: "none" }
-                }
-                dangerouslySetInnerHTML={{ __html: historyContent }}
-              />
-              {historyCnt === 0 && (
-                <div style={{ position: "absolute", top: "50%" }}>
-                  Execute your first prompt to see it here!
+          <div style={{ height: "calc(100vh - 150px)", overflowY: "auto" }}>
+            {mode === 0 && (
+              <div className="flex flex-col px-1 gap-3 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+                <div className="flex justify-between">
+                  <WalletButton className="text-[16px]">Account</WalletButton>
+                  <Image
+                    alt=""
+                    className="flex sm:hidden cursor-pointer"
+                    onClick={() => setVisible(!visible)}
+                    src={LeftArrow}
+                  />
                 </div>
-              )}
-            </div>
-          )}
-          {mode === 3 && (
-            <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
-              <div className="flex justify-between">
-                <div className="text-[16px]">Pending Prompts</div>
-                <Image
-                  alt=""
-                  className="flex sm:hidden cursor-pointer"
-                  onClick={() => setVisible(!visible)}
-                  src={LeftArrow}
+                <WalletButton className="text-gray-400">Wallets</WalletButton>
+                <WalletButton className="flex justify-between">
+                  <div>Slate</div>
+                  <div
+                    className="flex items-center cursor-pointer"
+                    onMouseEnter={() =>
+                      setAddrIcon({ wallet: "slate", icon: 0, visible: true })
+                    }
+                    onMouseLeave={() =>
+                      setAddrIcon({ wallet: "slate", icon: 0, visible: false })
+                    }
+                    onClick={() => copyAddress("slate")}
+                  >
+                    {addrIcon?.wallet === "slate" && addrIcon?.visible && (
+                      <Icon
+                        icon={
+                          addrIcon.icon ? "ic:outline-check" : "lets-icons:copy"
+                        }
+                        color="white"
+                      />
+                    )}
+                    {makeAddr(embeddedWallet?.address)}
+                  </div>
+                </WalletButton>
+                <WalletButton className="flex justify-between">
+                  <div>External</div>
+                  <div
+                    className="flex items-center cursor-pointer"
+                    onMouseEnter={() =>
+                      setAddrIcon({
+                        wallet: "external",
+                        icon: 0,
+                        visible: true,
+                      })
+                    }
+                    onMouseLeave={() =>
+                      setAddrIcon({
+                        wallet: "external",
+                        icon: 0,
+                        visible: false,
+                      })
+                    }
+                    onClick={() => copyAddress("external")}
+                  >
+                    {addrIcon?.wallet === "external" && addrIcon?.visible && (
+                      <Icon
+                        icon={
+                          addrIcon.icon ? "ic:outline-check" : "lets-icons:copy"
+                        }
+                        color="white"
+                      />
+                    )}
+                    {makeAddr(externalWallet?.address)}
+                  </div>
+                </WalletButton>
+                <WalletButton className="text-gray-400">Actions</WalletButton>
+                <ActionButton>Fund Account</ActionButton>
+                <ActionButton
+                  className="flex cursor-pointer justify-between items-center"
+                  onMouseEnter={() =>
+                    setAddrIcon({ wallet: "private", icon: 0, visible: true })
+                  }
+                  onMouseLeave={() =>
+                    setAddrIcon({ wallet: "private", icon: 0, visible: false })
+                  }
+                  onClick={() => {
+                    setAddrIcon({ wallet: "private", icon: 1, visible: true });
+                    exportWallet();
+                  }}
+                >
+                  Export Private Key
+                  {addrIcon?.wallet === "private" && addrIcon?.visible && (
+                    <Icon
+                      icon={
+                        addrIcon.icon ? "ic:outline-check" : "lets-icons:copy"
+                      }
+                      color="white"
+                    />
+                  )}
+                </ActionButton>
+                <ActionButton>Withdraw to External Wallet</ActionButton>
+                <ActionButton
+                  className="cursor-pointer"
+                  onClick={handleDisconnect}
+                >
+                  Disconnect External Wallet
+                </ActionButton>
+              </div>
+            )}
+            {mode === 1 && (
+              <div className="flex flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+                <div className="flex justify-between">
+                  <div className="text-[16px]">Funds</div>
+                  <Image
+                    alt=""
+                    className="flex sm:hidden cursor-pointer"
+                    onClick={() => setVisible(!visible)}
+                    src={LeftArrow}
+                  />
+                </div>
+                <p className="flex text-gray-500">
+                  Slate Wallet (
+                  <div
+                    className="flex items-center cursor-pointer hover:text-white"
+                    onMouseEnter={() =>
+                      setAddrIcon({ wallet: "slate", icon: 0, visible: true })
+                    }
+                    onMouseLeave={() =>
+                      setAddrIcon({ wallet: "slate", icon: 0, visible: false })
+                    }
+                    onClick={() => copyAddress("slate")}
+                  >
+                    {addrIcon?.wallet === "slate" && addrIcon?.visible && (
+                      <Icon
+                        icon={`${
+                          addrIcon.icon ? "ic:outline-check" : "lets-icons:copy"
+                        }`}
+                        color="white"
+                      />
+                    )}
+
+                    {makeAddr(embeddedWallet?.address)}
+                  </div>
+                  )
+                </p>
+                <div
+                  style={{ position: "relative" }}
+                  dangerouslySetInnerHTML={{
+                    __html: renderFundsContent(embBalances),
+                  }}
+                />
+                <p className="flex text-gray-500">
+                  Connected Wallet (
+                  <div
+                    className="flex items-center cursor-pointer hover:text-white"
+                    onMouseEnter={() =>
+                      setAddrIcon({
+                        wallet: "external",
+                        icon: 0,
+                        visible: true,
+                      })
+                    }
+                    onMouseLeave={() =>
+                      setAddrIcon({
+                        wallet: "external",
+                        icon: 0,
+                        visible: false,
+                      })
+                    }
+                    onClick={() => copyAddress("external")}
+                  >
+                    {addrIcon?.wallet === "external" && addrIcon?.visible && (
+                      <Icon
+                        icon={`${
+                          addrIcon.icon ? "ic:outline-check" : "lets-icons:copy"
+                        }`}
+                        color="white"
+                      />
+                    )}
+
+                    {makeAddr(externalWallet?.address)}
+                  </div>
+                  )
+                </p>
+                <div
+                  style={{ position: "relative" }}
+                  dangerouslySetInnerHTML={{
+                    __html: renderFundsContent(extBalances),
+                  }}
                 />
               </div>
-              <div
-                style={
-                  pendingCnt ? {} : { filter: "blur(4px)", userSelect: "none" }
-                }
-                dangerouslySetInnerHTML={{ __html: pendingContent }}
-              />
-              {pendingCnt === 0 && (
-                <div style={{ position: "absolute", top: "50%" }}>
-                  Execute your first conditional prompt to see it here!
+            )}
+            {mode === 2 && (
+              <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+                <div className="flex justify-between">
+                  <div className="text-[16px]">History</div>
+                  <Image
+                    alt=""
+                    className="flex sm:hidden cursor-pointer"
+                    onClick={() => setVisible(!visible)}
+                    src={LeftArrow}
+                  />
                 </div>
-              )}
+                {historyData.map((prompt: PendingPrompt, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col gap-4"
+                    style={
+                      historyCnt
+                        ? {}
+                        : {
+                            filter: "blur(4px)",
+                            userSelect: "none",
+                            pointerEvents: "none",
+                          }
+                    }
+                  >
+                    <div>{prompt.type}</div>
+                    <div className="flex flex-col gap-4">
+                      {prompt.data.map((item: any, id) => (
+                        <>
+                          <div
+                            className="flex w-full justify-between cursor-pointer"
+                            onClick={() => setCurrentHistoryData({ index, id })}
+                          >
+                            <div className="max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">
+                              {item.query.message}
+                            </div>
+                            <div>{formatTime(new Date(item.timestamp))}</div>
+                          </div>
+                          {historyCnt > 0 &&
+                            index === currentHistoryData?.index &&
+                            id === currentHistoryData.id && (
+                              <div
+                                className="px-3 py-2 rounded-md"
+                                style={{ background: "#464b5f" }}
+                              >
+                                <Response
+                                  mode={2}
+                                  query={item.query}
+                                  runningIds={[]}
+                                  canceledIds={[]}
+                                  statsText={{ value: "", id: "" }}
+                                  processText={{ value: "", id: "" }}
+                                  iconArray={iconArray}
+                                  verifiedData={verifiedEntities}
+                                  onSubmit={() => console.log()}
+                                />
+                                <div className="flex justify-between">
+                                  <div className="block"></div>
+                                  <div>{formatTime(item.timestamp)}</div>
+                                </div>
+                              </div>
+                            )}
+                        </>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {historyCnt === 0 && (
+                  <div style={{ position: "absolute", top: "50%" }}>
+                    Execute your first prompt to see it here!
+                  </div>
+                )}
+              </div>
+            )}
+            {mode === 3 && (
+              <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+                <div className="flex justify-between">
+                  <div className="text-[16px]">Pending Prompts</div>
+                  <Image
+                    alt=""
+                    className="flex sm:hidden cursor-pointer"
+                    onClick={() => setVisible(!visible)}
+                    src={LeftArrow}
+                  />
+                </div>
+                {pendingData.map((item: PendingPrompt, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col gap-4"
+                    style={
+                      pendingCnt
+                        ? {}
+                        : {
+                            filter: "blur(4px)",
+                            userSelect: "none",
+                            pointerEvents: "none",
+                          }
+                    }
+                  >
+                    <div className="text-[gray]">
+                      {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                    </div>
+                    {item.data.map((query: any, id) => (
+                      <>
+                        <div
+                          key={id}
+                          className="flex w-full justify-between cursor-pointer"
+                          onClick={() => setCurrentPendingData({ index, id })}
+                        >
+                          <div className="max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">
+                            {pendingCnt > 0
+                              ? query.message
+                              : query.query.message}
+                          </div>
+                          <div>@ {showCondition(query, item.type)}</div>
+                        </div>
+                        {pendingCnt > 0 &&
+                          index === currentPendingData?.index &&
+                          id === currentPendingData.id && (
+                            <div
+                              className="px-3 py-2 rounded-md"
+                              style={{ background: "#464b5f" }}
+                            >
+                              <Response
+                                mode={2}
+                                query={query}
+                                runningIds={[]}
+                                canceledIds={[]}
+                                statsText={{ value: "", id: "" }}
+                                processText={{ value: "", id: "" }}
+                                iconArray={iconArray}
+                                verifiedData={verifiedEntities}
+                                onSubmit={() => console.log()}
+                              />
+                              <div className="flex justify-between">
+                                <div
+                                  onClick={() => cancelCondition(query)}
+                                  className="flex items-center bg-[#dc8484] px-1 rounded-xl cursor-pointer"
+                                >
+                                  CANCEL
+                                  <Icon
+                                    icon="material-symbols-light:cancel-outline"
+                                    color="white"
+                                  />
+                                </div>
+                                <div>@ {showCondition(query, item.type)}</div>
+                              </div>
+                            </div>
+                          )}
+                      </>
+                    ))}
+                  </div>
+                ))}
+                {pendingCnt === 0 && (
+                  <div style={{ position: "absolute", top: "50%" }}>
+                    Execute your first conditional prompt to see it here!
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <Referral className="cursor-pointer">
+            <div>
+              <p className="font-extrabold">Refer a friend to Slate!</p>
+              <p>Click to copy your referral link</p>
             </div>
-          )}
+            <Icon icon="material-symbols:link" width={24} color="white" />
+          </Referral>
         </div>
       </div>
       {!visible && (
