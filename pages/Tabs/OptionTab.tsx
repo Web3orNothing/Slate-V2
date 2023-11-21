@@ -102,7 +102,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
       const itemContent = `
         <div style="display:flex;width:100%;justify-content:space-between;">
           <div style="
-            max-width: 60%;
+            max-width: 50%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -153,7 +153,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
       content += `
         <div style="display:flex;width:100%;justify-content:space-between;">
           <div style="
-            max-width: 60%;
+            max-width: 50%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -368,7 +368,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
             </div>
           )}
           {mode === 1 && (
-            <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+            <div className="flex flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
               <div className="flex justify-between">
                 <div className="text-[16px]">Funds</div>
                 <Image
@@ -407,7 +407,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
             </div>
           )}
           {mode === 2 && (
-            <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+            <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
               <div className="flex justify-between">
                 <div className="text-[16px]">History</div>
                 <Image
@@ -424,14 +424,14 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
                 dangerouslySetInnerHTML={{ __html: historyContent }}
               />
               {historyCnt === 0 && (
-                <div style={{ position: "absolute", top: "30%" }}>
+                <div style={{ position: "absolute", top: "50%" }}>
                   Execute your first prompt to see it here!
                 </div>
               )}
             </div>
           )}
           {mode === 3 && (
-            <div className="flex flex-col gap-4 px-8 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+            <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
               <div className="flex justify-between">
                 <div className="text-[16px]">Pending Prompts</div>
                 <Image
@@ -448,7 +448,7 @@ const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
                 dangerouslySetInnerHTML={{ __html: pendingContent }}
               />
               {pendingCnt === 0 && (
-                <div style={{ position: "absolute", top: "30%" }}>
+                <div style={{ position: "absolute", top: "50%" }}>
                   Execute your first conditional prompt to see it here!
                 </div>
               )}
