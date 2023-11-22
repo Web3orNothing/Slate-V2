@@ -9,6 +9,9 @@ import doneImg from "@/assets/done.png";
 import { BsCaretDownSquare, BsCaretRightSquare } from "react-icons/bs";
 import { getTokenAddress, groupConditions } from "@/utils";
 import { chains } from "@/config/constants/Chains";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const CONDITIONS = ["condition", "time"];
 
@@ -235,17 +238,14 @@ ResponseProps) {
                   <div>
                     {Object.entries(x.args).map(([key, value], i) => (
                       <Typography
+                        // className={`flex items-center text-[12px] ${inter.className} !important `}
+                        className={`flex items-center text-[12px]`}
                         key={key}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          fontSize: "12px",
-                        }}
                         aria-owns="mouse-over-popover"
                         aria-haspopup="true"
                       >
                         <DotIndent />
-                        {key}:{" "}
+                        <p className={inter.className}>{key}: </p>
                         {mode === 0 &&
                         !(isCanceled || !!getLastTxHashes(rows)) ? (
                           <input

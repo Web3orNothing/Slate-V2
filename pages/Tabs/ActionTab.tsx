@@ -855,7 +855,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
     <div
       className={`${
         !visible ? "flex w-full" : "hidden sm:flex sm:w-full"
-      } bg-[#383838] text-white`}
+      } bg-[#272a2d] text-white`}
     >
       <div className="flex sm:hidden px-1" onClick={() => setVisible(!visible)}>
         <Image className="p-1" width={18} src={HideLeft} alt="Hide Left" />

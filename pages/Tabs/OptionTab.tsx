@@ -90,7 +90,6 @@ const OptionTab = ({
   const [embBalances, setEmbBalances] = useState<string[]>([]);
   const [historyCnt, setHistoryCnt] = useState(0);
   const [pendingCnt, setPendingCnt] = useState(0);
-  const [historyContent, setHistoryContent] = useState<string>("");
   const [addrIcon, setAddrIcon] = useState<CopyIcon>();
   const [pendingData, setPendingData] = useState<PendingPrompt[]>([]);
   const [pendingQueries, setPendingQueries] = useState<Query[]>([]);
@@ -106,6 +105,7 @@ const OptionTab = ({
   }>();
   const [iconArray, setIconArray] = useState<MyIcon[]>([]);
   const [verifiedEntities, setVerifiedEntities] = useState<any>();
+  const [iconFlag, setIconFlag] = useState(false);
 
   const externalWallet = useMemo(
     () => (wallets || []).find((x: any) => x.walletClientType !== "privy"),
@@ -230,6 +230,7 @@ const OptionTab = ({
   }, []);
 
   useEffect(() => {
+    if (!iconFlag) return;
     historyQueries.map((x) => {
       x.actions.map((act) => {
         Object.entries(act.args).map(async ([key, value]) => {
@@ -259,87 +260,99 @@ const OptionTab = ({
         });
       });
     });
+
+    setIconFlag(false);
   }, [historyQueries, pendingQueries, iconArray]);
+
+  const getData = async (type: number) => {
+    if (!embeddedWallet) return;
+    if (type === 0) {
+      //Pending Data
+      const queryStr = `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`;
+      axios.get(queryStr).then(({ data: { conditions } }) => {
+        setPendingQueries([
+          ...conditions.map((x: any) => ({
+            ...x.query,
+            id: `c${x.id}`,
+            conditions: x.conditions,
+            actions: x.actions,
+            calls: x.query.calls,
+            conditionId: x.id,
+            simstatus: x.simstatus,
+          })),
+        ]);
+        setPendingCnt(conditions.length);
+
+        const displayData = pendingTypes.map((type) =>
+          pendingQueries.filter(
+            (item: any) => item.conditions[0].body.type === type
+          )
+        );
+
+        const pendingData = displayData
+          .filter((tmp) => tmp.length > 0)
+          .map((item) => ({
+            type: item[0].conditions[0].body.type,
+            data: item,
+          }));
+
+        setPendingData(pendingData);
+        setIconFlag(true);
+      });
+    }
+    if (type === 1) {
+      const queryStr = `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`;
+      axios.get(queryStr).then(({ data: { histories } }) => {
+        setHistoryCnt(histories.length);
+
+        setHistoryQueries([
+          ...histories.map((x: any) => ({
+            ...x.query,
+            id: `h${x.id}`,
+            conditions: x.conditions,
+            actions: x.actions,
+            timestamp: x.timestamp,
+          })),
+        ]);
+
+        const displayData = histories.length > 0 ? histories : historyPrompts;
+        let curDay = "";
+        const tmpData: any[] = [];
+        let tmp: any[] = [];
+        curDay = formatDate(new Date(displayData[0].timestamp));
+
+        displayData.forEach((item: any) => {
+          const date = new Date(item.timestamp);
+          const formattedDate = formatDate(date);
+
+          if (curDay !== formattedDate) {
+            tmpData.push({ type: curDay, data: tmp });
+            tmp = [];
+            curDay = formattedDate;
+          }
+
+          tmp.push(item);
+        });
+
+        setHistoryData(tmpData);
+        setIconFlag(true);
+      });
+    }
+  };
 
   useEffect(() => {
     if (!embeddedWallet) return;
-    try {
-      axios
-        .get(
-          `${WALLET_API_URL}/condition?accountAddress=${embeddedWallet.address}`
-        )
-        .then(({ data: { conditions } }) => {
-          setPendingQueries([
-            ...conditions.map((x: any) => ({
-              ...x.query,
-              id: `c${x.id}`,
-              conditions: x.conditions,
-              actions: x.actions,
-              calls: x.query.calls,
-              conditionId: x.id,
-              simstatus: x.simstatus,
-            })),
-          ]);
-
-          setPendingCnt(conditions.length);
-          const displayData = pendingTypes
-            .map((type) =>
-              (conditions.length > 0 ? pendingQueries : pendingPrompts).filter(
-                (item: Query) => item.conditions[0].body.type === type
-              )
-            )
-            .filter((tmp) => tmp.length > 0);
-
-          console.log(displayData);
-          const tmpData: PendingPrompt[] = [];
-          displayData.forEach((item) => {
-            tmpData.push({
-              type: item[0].conditions[0].body.type,
-              data: item,
-            });
-          });
-
-          setPendingData(tmpData);
-        });
-
-      axios
-        .get(
-          `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`
-        )
-        .then(({ data: { histories } }) => {
-          console.log(histories);
-          setHistoryCnt(histories.length);
-          setHistoryQueries([
-            ...histories.map((x: any) => ({
-              ...x.query,
-              id: `h${x.id}`,
-              conditions: x.conditions,
-              actions: x.actions,
-              timestamp: x.timestamp,
-            })),
-          ]);
-
-          const displayData = histories.length > 0 ? histories : historyPrompts;
-          let curDay: string = "";
-          const tmpData: PendingPrompt[] = [];
-          let tmp: any[] = [];
-          curDay = formatDate(new Date(displayData[0].timestamp));
-          displayData.map((item: any) => {
-            const date = new Date(item.timestamp);
-            const formattedDate = formatDate(date);
-            if (curDay !== formattedDate) {
-              tmpData.push({ type: curDay, data: tmp });
-              tmp = [];
-              curDay = formattedDate;
-            }
-            tmp.push(item);
-          });
-          setHistoryData(tmpData);
-        });
-    } catch (error) {
-      console.log(error);
+    if (mode === 3) {
+      getData(1); //get pending data
+    } else if (mode === 2) {
+      getData(0); //get history data
     }
-  }, [connected]);
+  }, [embeddedWallet, mode]);
+
+  useEffect(() => {
+    getData(0);
+    getData(1);
+  }, [embeddedWallet]);
 
   useEffect(() => {
     if (embeddedWallet && externalWallet) {

@@ -9,6 +9,10 @@ import OptionTab from "./Tabs/OptionTab";
 import ActionTab from "./Tabs/ActionTab";
 import Footer from "@/components/Footer";
 
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"] });
+
 const ConnectorButton = dynamic(() => import("@/components/ConnectorButton"), {
   ssr: false,
 });
@@ -64,7 +68,7 @@ const Home = () => {
     logout();
   };
   return (
-    <div>
+    <div className={inter.className}>
       {connected && address ? (
         <div className="flex w-full overflow-hidden">
           <OptionTab
