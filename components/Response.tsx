@@ -10,6 +10,7 @@ import { BsCaretDownSquare, BsCaretRightSquare } from "react-icons/bs";
 import { getTokenAddress, groupConditions } from "@/utils";
 import { chains } from "@/config/constants/Chains";
 import { Inter } from "next/font/google";
+import { Icon as MyIcon } from "@iconify/react/dist/iconify.js";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -369,7 +370,7 @@ ResponseProps) {
             <button
               className={`${mode ? "hidden" : ""} ${
                 inter.className
-              } border py-1 px-3 mt-1 mr-3 text-[14px]`}
+              } flex items-center gap-1 bg-[#aeb1ddcc] rounded-xl py-2 px-3 mt-1 mr-3 text-[14px]`}
               disabled={
                 isPending || // pending
                 isCanceled || // already canceled
@@ -386,29 +387,44 @@ ResponseProps) {
                   <p style={{ color: "red" }}>Failed</p>
                 )
               ) : !isCanceled ? (
-                ["Confirm", "Cancel"][mode]
+                <>
+                  {["EXECUTE", "Cancel"][mode]}
+                  {mode === 0 && (
+                    <MyIcon icon="lets-icons:sign-in-circle" color="white" />
+                  )}
+                </>
               ) : (
                 "Canceled"
               )}
             </button>
           ) : (
             <button
-              className={`${inter.className} border py-1 px-3 mt-1 mr-3 text-[14px]`}
+              className={`${inter.className} flex items-center gap-1 bg-[#aeb1dd4e] rounded-xl py-2 px-3 mt-1 mr-3 text-[14px]`}
               disabled
             >
               {processText.value}
+              <MyIcon icon="lets-icons:circle-right" color="white" />
             </button>
           )}
 
-          {!getLastTxHashes(rows) &&
+          {/* {!getLastTxHashes(rows) &&
             getLastTxHashes(rows) === undefined &&
             !mode &&
             !isCanceled && (
               <button disabled={isPending} onClick={() => onDelete?.(query.id)}>
                 <Image src={deleteImg} width={15} height={15} alt="delete" />
               </button>
-            )}
-          {isPending && <div className="ml-2 mt-2 loader" />}
+            )} */}
+          {/* {isPending && <div className="ml-2 mt-2 loader" />} */}
+          {isPending && (
+            <button
+              className={`${inter.className} flex items-center gap-1 bg-[#DC8484] rounded-xl py-2 px-3 mt-1 mr-3 text-[14px]`}
+              disabled
+            >
+              CANCEL
+              <MyIcon icon="material-symbols:cancel-outline" color="white" />
+            </button>
+          )}
         </div>
       )}
       {query.id === statsText.id && !isCanceled && (

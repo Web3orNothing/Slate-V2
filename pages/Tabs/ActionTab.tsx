@@ -56,7 +56,12 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const { wallets } = useWallets();
   const { wallet } = usePrivyWagmi();
   const { chain } = useNetwork();
-  const { ref: caretRef, start, end, updateCaret } = useCaretPosition();
+  const {
+    ref: caretRef,
+    start: caretStart,
+    end: caretEnd,
+    updateCaret,
+  } = useCaretPosition();
 
   const externalWallet = useMemo(
     () => (wallets || []).find((x: any) => x.walletClientType !== "privy"),
@@ -119,12 +124,11 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
     return context.measureText(text).width;
   };
 
-  const calculateCursorPosition = (val: string) => {
-    setCommand(val);
+  const calculateCursorPosition = (val: string, type: number) => {
+    if (type === 0) setCommand(val);
     const inputElement = document.getElementById("custom-input");
     if (!inputElement) return;
     const cursorElement = document.getElementById("custom-cursor");
-    console.log(getComputedStyle(inputElement).font);
     let currentWidth = getTextWidth(val, getComputedStyle(inputElement).font);
 
     if (inputElement && cursorElement) {
@@ -141,6 +145,10 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   };
 
   useEffect(() => {
+    console.log(caretStart, caretEnd);
+    calculateCursorPosition(command.slice(0, caretStart), 1);
+  }, [caretStart, caretEnd]);
+  useEffect(() => {
     // set connected & address status
     let auth = ready && authenticated && wallet?.walletClientType === "privy";
     if (wallet?.address === address) return;
@@ -154,6 +162,10 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
       setVerifiedEntities(res.data);
     };
     fetchEntities();
+
+    const interval = setInterval(() => updateCaret(), 100);
+
+    return () => clearInterval(interval);
   }, []);
 
   const switchChain = useCallback(
@@ -240,10 +252,10 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   }, [comment, isSubmitting]);
 
   useEffect(() => {
-    if (processText.value === "Optimizing...") {
+    if (processText.value === "SIMULATING") {
       const timer = setTimeout(() => {
-        if (processText.value === "Optimizing...")
-          setProcessText({ value: "Simulating...", id: processText.id });
+        if (processText.value === "SIMULATING")
+          setProcessText({ value: "PROCESSING", id: processText.id });
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -298,7 +310,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   };
 
   const processMessage = async (id: string) => {
-    setProcessText({ value: "Optimizing...", id });
+    setProcessText({ value: "SIMULATING", id });
     const index = mainQueries.findIndex((x) => x.id === id);
     if (index === -1) return;
     let { actions, simstatus, messageId } = mainQueries[index];
@@ -359,7 +371,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
     key: string,
     value: string
   ) => {
-    setProcessText({ value: "Optimizing...", id });
+    setProcessText({ value: "SIMULATING", id });
     const index = mainQueries.findIndex((x) => x.id === id);
     if (index === -1) return;
 
@@ -375,7 +387,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
     const index = mainQueries.findIndex((x) => x.id === id);
     if (index === -1) return;
 
-    setProcessText({ value: "Loading...", id });
+    setProcessText({ value: "Loading", id });
     setRunningIds([...runningIds, id]);
 
     let { calls, actions, messageId } = mainQueries[index];
@@ -1065,7 +1077,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
                   value={command}
                   disabled={isSubmitting}
                   onChange={(e) => {
-                    calculateCursorPosition(e.target.value);
+                    calculateCursorPosition(e.target.value, 0);
                   }}
                 />
                 <div
