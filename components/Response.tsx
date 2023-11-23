@@ -382,7 +382,10 @@ ResponseProps) {
               {!!getLastTxHashes(rows) ? (
                 getLastTxHashes(rows)![getLastTxHashes(rows)!.length - 1] !==
                 "" ? (
-                  <p style={{ color: "green" }}>Success</p>
+                  <div className="text-[#AEB1DD] flex items-center">
+                    SUCCESS
+                    <MyIcon icon="mdi:success" color="#AEB1DD" />
+                  </div>
                 ) : (
                   <p style={{ color: "red" }}>Failed</p>
                 )
