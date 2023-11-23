@@ -6724,6 +6724,11 @@
     "loose-envify" "^1.4.0"
     "prop-types" "^15.6.2"
 
+"react-use-caret-position@^1.1.0":
+  "integrity" "sha512-hmRVVLH/GWWBEeR3/a4Ne2o3Hg8TG9g4N0W9oBGJW3k+jAoG+itnNZAIEh9ONkm9cLbBKP9zBLWsmwUcuO2Ajw=="
+  "resolved" "https://registry.npmjs.org/react-use-caret-position/-/react-use-caret-position-1.1.0.tgz"
+  "version" "1.1.0"
+
 "react@*", "react@^16.8.0 || ^17.0.0 || ^18.0.0", "react@^17.0.0", "react@^17.0.0 || ^18.0.0", "react@^18", "react@^18.2.0", "react@>= 0.14.0", "react@>= 16", "react@>= 16.8.0", "react@>= 16.8.0 || 17.x.x || ^18.0.0-0", "react@>=16", "react@>=16.6.0", "react@>=16.8", "react@>=16.8.0", "react@>=17.0.0", "react@18.2.0":
   "integrity" "sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ=="
   "resolved" "https://registry.npmjs.org/react/-/react-18.2.0.tgz"

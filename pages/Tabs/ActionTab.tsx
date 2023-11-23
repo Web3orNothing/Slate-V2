@@ -8,6 +8,7 @@ import { useNetwork, useBalance } from "wagmi";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { BigNumber, ethers, providers, utils } from "ethers";
+import { useCaretPosition } from "react-use-caret-position";
 import { Icon } from "@iconify/react";
 import {
   PROCESS_MESSAGE_API,
@@ -55,6 +56,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const { wallets } = useWallets();
   const { wallet } = usePrivyWagmi();
   const { chain } = useNetwork();
+  const { ref: caretRef, start, end, updateCaret } = useCaretPosition();
 
   const externalWallet = useMemo(
     () => (wallets || []).find((x: any) => x.walletClientType !== "privy"),
@@ -107,18 +109,35 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const [iconArray, setIconArray] = useState<MyIcon[]>([]);
   const [verifiedEntities, setVerifiedEntities] = useState<any>();
 
+  const getTextWidth = (text: string, font: any) => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) return 0;
+    context.font = font;
+
+    return context.measureText(text).width;
+  };
+
   const calculateCursorPosition = (val: string) => {
     setCommand(val);
     const inputElement = document.getElementById("custom-input");
+    if (!inputElement) return;
     const cursorElement = document.getElementById("custom-cursor");
+    console.log(getComputedStyle(inputElement).font);
+    let currentWidth = getTextWidth(val, getComputedStyle(inputElement).font);
 
     if (inputElement && cursorElement) {
       if (val.length > 0) {
-        cursorElement.style.left = `${val.length * 8 + 6}px`;
+        if (currentWidth > inputElement.clientWidth)
+          currentWidth = inputElement.clientWidth;
+        cursorElement.style.left = `${currentWidth}px`;
       } else {
         cursorElement.style.left = "0px";
       }
     }
+
+    updateCaret();
   };
 
   useEffect(() => {
@@ -1040,6 +1059,7 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
                 <input
                   type="text"
                   id="custom-input"
+                  ref={caretRef}
                   className="flex-1 bg-transparent outline-none caret-transparent w-full"
                   placeholder="Type an operation"
                   value={command}
