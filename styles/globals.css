@@ -66,3 +66,20 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #aaa; /* Set a darker background color when hovering over the scrollbar handle */
 }
+
+@keyframes blink {
+  0%,
+  50% {
+    border-color: transparent;
+  }
+  51%,
+  100% {
+    border-color: #0d81fb;
+  }
+}
+
+.blinking-cursor {
+  caret-color: #0d81fb;
+  border-left: 2px solid #0d81fb;
+  animation: blink 1s infinite;
+}

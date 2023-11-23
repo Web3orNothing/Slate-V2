@@ -107,6 +107,20 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const [iconArray, setIconArray] = useState<MyIcon[]>([]);
   const [verifiedEntities, setVerifiedEntities] = useState<any>();
 
+  const calculateCursorPosition = (val: string) => {
+    setCommand(val);
+    const inputElement = document.getElementById("custom-input");
+    const cursorElement = document.getElementById("custom-cursor");
+
+    if (inputElement && cursorElement) {
+      if (val.length > 0) {
+        cursorElement.style.left = `${val.length * 8 + 6}px`;
+      } else {
+        cursorElement.style.left = "0px";
+      }
+    }
+  };
+
   useEffect(() => {
     // set connected & address status
     let auth = ready && authenticated && wallet?.walletClientType === "privy";
@@ -850,18 +864,21 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
   const queriesToShow = useMemo(() => {
     return [mainQueries, []][mode].filter((x) => !hiddenIds.includes(x.id));
   }, [hiddenIds, mainQueries, mode]);
-
+  console.log(iconArray);
   return (
     <div
       className={`${
-        !visible ? "flex w-full" : "hidden sm:flex sm:w-full"
+        !visible ? "flex w-full" : "hidden md:flex sm:w-full"
       } bg-[#272a2d] text-white`}
     >
-      <div className="flex sm:hidden px-1" onClick={() => setVisible(!visible)}>
+      <div
+        className="flex bg-[#181818] sm:hidden px-1 cursor-pointer"
+        onClick={() => setVisible(!visible)}
+      >
         <Image className="p-1" width={18} src={HideLeft} alt="Hide Left" />
       </div>
       <div
-        className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center px-4 md:px-8"
+        className="container mx-auto flex-1 max-w-[1000px] flex flex-col items-center px-4 sm:px-8 md:px-4 lg:px-8"
         style={{ height: "calc(100vh - 32px)" }}
       >
         <div className="w-full flex-1 my-6 px-2 overflow-y-auto">
@@ -1019,14 +1036,24 @@ export default function ActionTab({ mode, visible, setVisible }: ActionProps) {
               className="w-full p-3 rounded-[5px] bg-[#686D77] border-l-4 border-l-[#AEB1DD] flex"
               onSubmit={onSubmit}
             >
-              <input
-                type="text"
-                className="flex-1 bg-transparent outline-none caret-blue-600"
-                placeholder="Type an operation"
-                value={command}
-                disabled={isSubmitting}
-                onChange={(e) => setCommand(e.target.value)}
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  id="custom-input"
+                  className="flex-1 bg-transparent outline-none caret-transparent w-full"
+                  placeholder="Type an operation"
+                  value={command}
+                  disabled={isSubmitting}
+                  onChange={(e) => {
+                    calculateCursorPosition(e.target.value);
+                  }}
+                />
+                <div
+                  id="custom-cursor"
+                  className="blinking-cursor absolute h-[100%]"
+                  style={{ transform: "translateY(-100%)" }}
+                ></div>
+              </div>
               {isSubmitting ? (
                 <div className="loader" />
               ) : (

@@ -3,7 +3,7 @@ import Image from "next/image";
 import Logo1 from "@/assets/Logo1.svg";
 import LeftArrow from "@/assets/LeftArrow.svg";
 import AccountInactive from "@/assets/Account-inactive.svg";
-import Account from "@/assets/Account.svg";
+import Account from "@/assets/Account-inactive.svg";
 import { Icon } from "@iconify/react";
 import { useEffect, useMemo, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
@@ -73,7 +73,7 @@ const Referral = styled("div")({
   color: "#AEB1DD",
   fontWeight: "bold",
   padding: "12px",
-  margin: "12px",
+  margin: "0px 12px",
   borderRadius: "10px",
 });
 
@@ -88,8 +88,8 @@ const OptionTab = ({
   const [mode, setMode] = useState(1);
   const [extBalances, setExtBalances] = useState<string[]>([]);
   const [embBalances, setEmbBalances] = useState<string[]>([]);
-  const [historyCnt, setHistoryCnt] = useState(0);
-  const [pendingCnt, setPendingCnt] = useState(0);
+  const [externalData, setExternalData] = useState<TokenParam[]>([]);
+  const [embeddedData, setEmbeddedData] = useState<TokenParam[]>([]);
   const [addrIcon, setAddrIcon] = useState<CopyIcon>();
   const [pendingData, setPendingData] = useState<PendingPrompt[]>([]);
   const [pendingQueries, setPendingQueries] = useState<Query[]>([]);
@@ -180,47 +180,6 @@ const OptionTab = ({
     return showData;
   };
 
-  const renderFundsContent = (balances: any[]) => {
-    const displayData = Tokens.filter(
-      (item, id) => parseFloat(balances[id]) > 0
-    );
-    const flag = displayData.length > 0;
-    let content = `<div class="flex flex-col gap-4 ${
-      !flag ? "blur-[4px] select-none" : ""
-    }">`;
-
-    content += (flag ? displayData : Tokens)
-      .map((item, id) => {
-        if (!flag && id === 2) return "<div style='height:24px;'></div>";
-        const balance = parseFloat(
-          flag ? balances[item.id] : "5.01240"
-        ).toFixed(4);
-        return `
-          <div class="flex justify-between items-center">
-            <div class="flex gap-3 items-center">
-              <img src="${item.icon.src}" alt="" />
-              <p>${item.name}</p>
-            </div>
-            <div>${balance} $${item.currency}</div>
-          </div>
-        `;
-      })
-      .join("");
-
-    content += "</div>";
-
-    if (!flag) {
-      content += `
-        <div style="display:flex;align-items:center;gap:12px;position:absolute;top:80px;">
-          <img src="${Tokens[2].icon.src}" alt="" />
-          <p>Deposit funds into your Slate wallet to view.</p>
-        </div>
-      `;
-    }
-
-    return content;
-  };
-
   useEffect(() => {
     const fetchEntities = async () => {
       const res = await axios.get(`${WALLET_API_URL}/verified-entities`);
@@ -231,34 +190,38 @@ const OptionTab = ({
 
   useEffect(() => {
     if (!iconFlag) return;
-    historyQueries.map((x) => {
-      x.actions.map((act) => {
-        Object.entries(act.args).map(async ([key, value]) => {
+    const tmpArray: MyIcon[] = iconArray;
+
+    historyQueries.forEach((x) => {
+      x.actions.forEach((act) => {
+        Object.entries(act.args).forEach(async ([key, value]) => {
           if (
-            !iconArray.find((x) => x.coin === value) &&
+            !tmpArray.find((x) => x.coin === value) &&
             (key.toLowerCase().includes("token") ||
               key.toLowerCase().includes("chain"))
           ) {
             const url = await getIconFromToken(value);
-            setIconArray([...iconArray, { coin: value, image: url }]);
+            tmpArray.push({ coin: value, image: url });
           }
         });
       });
     });
 
-    pendingQueries.map((x) => {
-      x.actions.map((act) => {
-        Object.entries(act.args).map(async ([key, value]) => {
+    pendingQueries.forEach((x) => {
+      x.actions.forEach((act) => {
+        Object.entries(act.args).forEach(async ([key, value]) => {
           if (
-            !iconArray.find((x) => x.coin === value) &&
+            !tmpArray.find((x) => x.coin === value) &&
             (key.toLowerCase().includes("token") ||
               key.toLowerCase().includes("chain"))
           ) {
             const url = await getIconFromToken(value);
-            setIconArray([...iconArray, { coin: value, image: url }]);
+            tmpArray.push({ coin: value, image: url });
           }
         });
       });
+
+      setIconArray(tmpArray);
     });
 
     setIconFlag(false);
@@ -281,7 +244,6 @@ const OptionTab = ({
             simstatus: x.simstatus,
           })),
         ]);
-        setPendingCnt(conditions.length);
 
         const displayData = pendingTypes.map((type) =>
           pendingQueries.filter(
@@ -303,8 +265,6 @@ const OptionTab = ({
     if (type === 1) {
       const queryStr = `${WALLET_API_URL}/history?accountAddress=${embeddedWallet.address}`;
       axios.get(queryStr).then(({ data: { histories } }) => {
-        setHistoryCnt(histories.length);
-
         setHistoryQueries([
           ...histories.map((x: any) => ({
             ...x.query,
@@ -388,15 +348,22 @@ const OptionTab = ({
       };
       fetchBalances();
     }
-  }, [mode, embeddedWallet, externalWallet, setEmbBalances, setExtBalances]);
+  }, [mode, embeddedWallet, externalWallet]);
 
+  useEffect(() => {
+    if (!(embBalances.length > 0 && extBalances.length > 0)) return;
+    let filtered = Tokens.filter((item, id) => parseFloat(embBalances[id]) > 0);
+    setEmbeddedData(filtered.length > 0 ? filtered : Tokens);
+    filtered = Tokens.filter((item, id) => parseFloat(extBalances[id]) > 0);
+    setExternalData(filtered.length > 0 ? filtered : Tokens);
+  }, [embBalances, extBalances]);
   return (
     <>
       <div
         className={`${
           visible
-            ? "flex text-[12px] py-8 px-4 bg-[#181818] w-full sm:w-[300px] md:w-auto"
-            : "hidden py-8 px-4 bg-[#181818] w-full h-full"
+            ? "flex text-[12px] py-8 px-4 bg-[#181818] w-full sm:w-full md:w-auto"
+            : "hidden md:flex md:w-auto py-8 px-4 bg-[#181818] w-full h-full"
         }`}
       >
         <div className="flex flex-col justify-between w-[50px]">
@@ -422,19 +389,20 @@ const OptionTab = ({
           />
         </div>
         <div
+          className="flex flex-col justify-between"
           style={{
             height: "calc(100vh - 96px)",
             width: "100%",
           }}
         >
-          <div style={{ height: "calc(100vh - 150px)", overflowY: "auto" }}>
+          <div className="overflow-y-auto pl-4 pb-4">
             {mode === 0 && (
-              <div className="flex flex-col px-1 gap-3 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex flex-col px-1 gap-3 text-white w-full md:w-[280px] lg:w-[360px]">
                 <div className="flex justify-between">
                   <WalletButton className="text-[16px]">Account</WalletButton>
                   <Image
                     alt=""
-                    className="flex sm:hidden cursor-pointer"
+                    className="flex md:hidden cursor-pointer"
                     onClick={() => setVisible(!visible)}
                     src={LeftArrow}
                   />
@@ -529,12 +497,12 @@ const OptionTab = ({
               </div>
             )}
             {mode === 1 && (
-              <div className="flex flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex flex-col gap-4 px-4 text-white w-full md:w-[280px] lg:w-[360px]">
                 <div className="flex justify-between">
                   <div className="text-[16px]">Funds</div>
                   <Image
                     alt=""
-                    className="flex sm:hidden cursor-pointer"
+                    className="flex md:hidden cursor-pointer"
                     onClick={() => setVisible(!visible)}
                     src={LeftArrow}
                   />
@@ -564,12 +532,32 @@ const OptionTab = ({
                   </div>
                   )
                 </p>
-                <div
-                  style={{ position: "relative" }}
-                  dangerouslySetInnerHTML={{
-                    __html: renderFundsContent(embBalances),
-                  }}
-                />
+                <div>
+                  {embeddedData.map((item, id) => (
+                    <div
+                      key={id}
+                      className={
+                        embeddedData.length === 0 && id === 2
+                          ? "h-[24px]"
+                          : "flex justify-between items-center"
+                      }
+                    >
+                      {embeddedData.length > 0 && (
+                        <>
+                          <div className="flex gap-3 items-center">
+                            <img src={item.icon.src} alt={item.name} />
+                            <p>{item.name}</p>
+                          </div>
+                          <div>
+                            {parseFloat(
+                              embBalances[item.id] || "5.01240"
+                            ).toFixed(4)}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
                 <p className="flex text-gray-500">
                   Connected Wallet (
                   <div
@@ -603,21 +591,41 @@ const OptionTab = ({
                   </div>
                   )
                 </p>
-                <div
-                  style={{ position: "relative" }}
-                  dangerouslySetInnerHTML={{
-                    __html: renderFundsContent(extBalances),
-                  }}
-                />
+                <div>
+                  {externalData.map((item, id) => (
+                    <div
+                      key={id}
+                      className={
+                        externalData.length === 0 && id === 2
+                          ? "h-[24px]"
+                          : "flex justify-between items-center"
+                      }
+                    >
+                      {externalData.length > 0 && (
+                        <>
+                          <div className="flex gap-3 items-center">
+                            <img src={item.icon.src} alt={item.name} />
+                            <p>{item.name}</p>
+                          </div>
+                          <div>
+                            {parseFloat(
+                              extBalances[item.id] || "5.01240"
+                            ).toFixed(4)}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {mode === 2 && (
-              <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex relative flex-col gap-4 px-4 text-white w-full md:w-[280px] lg:w-[360px]">
                 <div className="flex justify-between">
                   <div className="text-[16px]">History</div>
                   <Image
                     alt=""
-                    className="flex sm:hidden cursor-pointer"
+                    className="flex md:hidden cursor-pointer"
                     onClick={() => setVisible(!visible)}
                     src={LeftArrow}
                   />
@@ -627,7 +635,7 @@ const OptionTab = ({
                     key={index}
                     className="flex flex-col gap-4"
                     style={
-                      historyCnt
+                      historyQueries.length > 0
                         ? {}
                         : {
                             filter: "blur(4px)",
@@ -649,7 +657,7 @@ const OptionTab = ({
                             </div>
                             <div>{formatTime(new Date(item.timestamp))}</div>
                           </div>
-                          {historyCnt > 0 &&
+                          {historyQueries.length > 0 &&
                             index === currentHistoryData?.index &&
                             id === currentHistoryData.id && (
                               <div
@@ -678,7 +686,7 @@ const OptionTab = ({
                     </div>
                   </div>
                 ))}
-                {historyCnt === 0 && (
+                {historyQueries.length === 0 && (
                   <div style={{ position: "absolute", top: "50%" }}>
                     Execute your first prompt to see it here!
                   </div>
@@ -686,12 +694,12 @@ const OptionTab = ({
               </div>
             )}
             {mode === 3 && (
-              <div className="flex relative flex-col gap-4 px-4 text-white w-full sm:w-[200px] md:w-[300px] lg:w-[360px]">
+              <div className="flex relative flex-col gap-4 px-4 text-white w-full md:w-[280px] lg:w-[360px]">
                 <div className="flex justify-between">
                   <div className="text-[16px]">Pending Prompts</div>
                   <Image
                     alt=""
-                    className="flex sm:hidden cursor-pointer"
+                    className="flex md:hidden cursor-pointer"
                     onClick={() => setVisible(!visible)}
                     src={LeftArrow}
                   />
@@ -701,7 +709,7 @@ const OptionTab = ({
                     key={index}
                     className="flex flex-col gap-4"
                     style={
-                      pendingCnt
+                      pendingQueries.length > 0
                         ? {}
                         : {
                             filter: "blur(4px)",
@@ -717,17 +725,24 @@ const OptionTab = ({
                       <>
                         <div
                           key={id}
-                          className="flex w-full justify-between cursor-pointer"
-                          onClick={() => setCurrentPendingData({ index, id })}
+                          className="flex w-full justify-between cursor-pointer text-[14px]"
+                          onClick={() =>
+                            setCurrentPendingData(
+                              index === currentPendingData?.index &&
+                                id === currentPendingData.id
+                                ? { index: -1, id: -1 }
+                                : { index, id }
+                            )
+                          }
                         >
                           <div className="max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">
-                            {pendingCnt > 0
+                            {pendingQueries.length > 0
                               ? query.message
                               : query.query.message}
                           </div>
                           <div>@ {showCondition(query, item.type)}</div>
                         </div>
-                        {pendingCnt > 0 &&
+                        {pendingQueries.length > 0 &&
                           index === currentPendingData?.index &&
                           id === currentPendingData.id && (
                             <div
@@ -764,7 +779,7 @@ const OptionTab = ({
                     ))}
                   </div>
                 ))}
-                {pendingCnt === 0 && (
+                {pendingQueries.length === 0 && (
                   <div style={{ position: "absolute", top: "50%" }}>
                     Execute your first conditional prompt to see it here!
                   </div>
@@ -777,12 +792,12 @@ const OptionTab = ({
               <p className="font-extrabold">Refer a friend to Slate!</p>
               <p>Click to copy your referral link</p>
             </div>
-            <Icon icon="material-symbols:link" width={24} color="white" />
+            <Icon icon="material-symbols:link" width={24} color="#AEB1DD" />
           </Referral>
         </div>
       </div>
       {!visible && (
-        <div className="hidden sm:flex flex-col items-center justify-between px-4 py-8 bg-[#181818]">
+        <div className="hidden sm:flex md:hidden flex-col items-center justify-between px-4 py-8 bg-[#181818]">
           <div className="flex flex-col gap-6">
             <Image alt="" className="pb-8 cursor-pointer" src={Logo1} />
             {modeData.map((item: any, id) => (
@@ -790,14 +805,23 @@ const OptionTab = ({
                 key={id}
                 icon={item.icon}
                 color="white"
-                className={`p-2 ${
-                  mode === item.mode ? "bg-[#464B53]" : ""
-                } rounded-md`}
+                className={`p-2  rounded-md`}
                 width={40}
+                onClick={() => {
+                  setVisible(true);
+                  setMode(id + 1);
+                }}
               />
             ))}
           </div>
-          <Image alt="" src={Account} onClick={() => setMode(0)} />
+          <Image
+            alt=""
+            src={Account}
+            onClick={() => {
+              setVisible(true);
+              setMode(0);
+            }}
+          />
         </div>
       )}
     </>

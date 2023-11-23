@@ -10,8 +10,13 @@ const CustomText = styled("div")({
 
 const CustomButton = styled("div")({
   background: "rgba(255,255,255,0.3)",
-  padding: "4px 8px 4px 8px",
+  width: "20px",
+  height: "20px",
   borderRadius: "6px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  alignSelf: "center",
 });
 
 const Footer = () => {
@@ -23,21 +28,21 @@ const Footer = () => {
       <div className="hidden sm:flex gap-1 justify-center text-white text-[12px]">
         <CustomText>Hit</CustomText>
         <CustomButton>R</CustomButton>
-        <CustomButton>R</CustomButton>
-        <CustomButton>R</CustomButton>
-        <CustomButton>R</CustomButton>
+        <CustomButton>E</CustomButton>
+        <CustomButton>W</CustomButton>
+        <CustomButton>Q</CustomButton>
         <CustomText>to switch tabs &bull;</CustomText>
         <CustomButton style={{ display: "flex", alignItems: "center" }}>
           <Image alt="" width={12} src={LoopedSquare} />
         </CustomButton>
         <CustomButton>K</CustomButton>
         <CustomText>to type &bull;</CustomText>
-        <CustomButton>enter</CustomButton>
+        <CustomButton style={{ width: "43px" }}>enter</CustomButton>
         <CustomText>to go &bull;</CustomText>
         <CustomButton style={{ display: "flex", alignItems: "center" }}>
           <Image alt="" width={12} src={LoopedSquare} />
         </CustomButton>
-        <CustomButton>enter</CustomButton>
+        <CustomButton style={{ width: "43px" }}>enter</CustomButton>
         <CustomText>to execute</CustomText>
       </div>
     </div>

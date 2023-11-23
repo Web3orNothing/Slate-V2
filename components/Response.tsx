@@ -201,14 +201,17 @@ ResponseProps) {
     )
       return "";
     const icon = iconArray.find((x) => x.coin === value);
-    if (!icon || icon.image === "undefined") return "Undefined";
+    if (!icon || icon.image === "undefined")
+      return (
+        <span className={`${inter.className} text-[14px]`}>Undefined</span>
+      );
 
     return <img src={icon.image} alt="icon" />;
   };
 
   return (
     <div>
-      <div className="my-2 flex items-center cursor-default">
+      <div className="my-2 flex items-center cursor-default text-[14px]">
         <span>{message}</span>
         <i style={{ paddingLeft: "5px" }}>
           {timestamp ? `: ${new Date(parseInt(timestamp)).toUTCString()}` : ""}
@@ -226,30 +229,35 @@ ResponseProps) {
       <div
         className={`${mode === 0 ? "border-l-4 px-4 border-[#AEB1DD]" : ""}`}
       >
-        <div className="text-left flex items-center">{description}&nbsp;</div>
+        <div className="text-left flex items-center text-[14px]">
+          {description}&nbsp;
+        </div>
         {rows.map((row, rowIndex) => (
           <div key={rowIndex}>
             {row.actions.map((x, index) => (
               <div key={`${rowIndex * 100 + index}`}>
-                <button className="mt-2 flex items-center">
+                <button
+                  className={`${inter.className} mt-2 flex items-center text-[14px]`}
+                >
                   /{x.name} &nbsp;
                 </button>
                 {
                   <div>
                     {Object.entries(x.args).map(([key, value], i) => (
                       <Typography
-                        // className={`flex items-center text-[12px] ${inter.className} !important `}
-                        className={`flex items-center text-[12px]`}
+                        className={`flex items-center text-[14px]`}
                         key={key}
                         aria-owns="mouse-over-popover"
                         aria-haspopup="true"
                       >
                         <DotIndent />
-                        <p className={inter.className}>{key}: </p>
+                        <p className={`${inter.className} text-[14px]`}>
+                          {key}:{" "}
+                        </p>
                         {mode === 0 &&
                         !(isCanceled || !!getLastTxHashes(rows)) ? (
                           <input
-                            className="bg-transparent outline-none mt-0.5 mb-0.5 mr-2 ml-3 pl-1"
+                            className={`${inter.className} text-[14px] bg-transparent outline-none mt-0.5 mb-0.5 mr-2 ml-3 pl-1`}
                             style={{
                               width: `${x.args[`${key}`].length * 10 + 10}px`,
                               border: "1px solid gray",
@@ -266,12 +274,18 @@ ResponseProps) {
                           />
                         ) : (
                           (
-                            <p style={{ overflowWrap: "anywhere" }}>{value}</p>
+                            <p
+                              className={`${inter.className} text-[14px]`}
+                              style={{ overflowWrap: "anywhere" }}
+                            >
+                              {value}
+                            </p>
                           ) || <i className="text-gray-500">TBD</i>
                         )}
                         &nbsp;
                         {
                           <span
+                            className={inter.className}
                             onMouseEnter={(ev: MouseEvent<HTMLElement>) =>
                               handlePopoverOpen(ev.currentTarget, key, value)
                             }
@@ -287,14 +301,18 @@ ResponseProps) {
                 }
                 {x.txHashes && (!simstatus || mode === 2) && (
                   <div className="mt-2">
-                    <button className="flex items-center">
+                    <button
+                      className={`${inter.className} flex items-center text-[14px]`}
+                    >
                       <DotIndent />
                       Transaction Pathway &nbsp;
                     </button>
                     {
                       <>
                         {x.txHashes.length > 1 && (
-                          <span className="flex items-center">
+                          <span
+                            className={`${inter.className} flex items-center text-[14px]`}
+                          >
                             <EmptyIndent />
                             <i>1. Approve: </i>
                             <TxIndicator
@@ -303,7 +321,9 @@ ResponseProps) {
                             />
                           </span>
                         )}
-                        <span className="flex items-center">
+                        <span
+                          className={`${inter.className} flex items-center text-[14px]`}
+                        >
                           <EmptyIndent />
                           <i>
                             {x.txHashes.length}. {upper(x.name)}:{" "}
@@ -322,14 +342,14 @@ ResponseProps) {
             {row.conditions.length > 0 &&
               row.conditions.map((y, index) => (
                 <div key={index}>
-                  <button className="mt-2 flex items-center">
+                  <div className="text-[14px] mt-2 flex items-center">
                     <EmptyIndent />
                     <DotIndent /> /{y.name} &nbsp;
-                  </button>
+                  </div>
                   {
                     <div>
                       {Object.entries(y.args).map(([key, value]) => (
-                        <span key={key}>
+                        <span className="text-[14px]" key={key}>
                           <EmptyIndent />
                           <EmptyIndent />
                           {key}: {value || <i className="text-gray-500">TBD</i>}
@@ -347,7 +367,9 @@ ResponseProps) {
         <div className="my-2 flex">
           {!isPending ? (
             <button
-              className={`${mode ? "hidden" : ""} border py-1 px-3 mt-1 mr-3`}
+              className={`${mode ? "hidden" : ""} ${
+                inter.className
+              } border py-1 px-3 mt-1 mr-3 text-[14px]`}
               disabled={
                 isPending || // pending
                 isCanceled || // already canceled
@@ -370,7 +392,10 @@ ResponseProps) {
               )}
             </button>
           ) : (
-            <button className="border py-1 px-3 mt-1 mr-3" disabled>
+            <button
+              className={`${inter.className} border py-1 px-3 mt-1 mr-3 text-[14px]`}
+              disabled
+            >
               {processText.value}
             </button>
           )}
