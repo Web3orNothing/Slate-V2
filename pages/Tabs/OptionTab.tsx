@@ -18,7 +18,6 @@ import { getIconFromToken } from "@/utils";
 import { styled } from "@mui/material/styles";
 
 export type TabProps = {
-  connected: boolean;
   visible: boolean;
   handleDisconnect: () => void;
   setVisible: (val: boolean) => void;
@@ -77,12 +76,7 @@ const Referral = styled("div")({
   borderRadius: "10px",
 });
 
-const OptionTab = ({
-  connected,
-  visible,
-  handleDisconnect,
-  setVisible,
-}: TabProps) => {
+const OptionTab = ({ visible, handleDisconnect, setVisible }: TabProps) => {
   const { exportWallet } = usePrivy();
   const { wallets } = useWallets();
   const [mode, setMode] = useState(1);

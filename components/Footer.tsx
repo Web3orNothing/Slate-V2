@@ -19,12 +19,18 @@ const CustomButton = styled("div")({
   alignSelf: "center",
 });
 
+const FooterContainer = styled("div")({
+  backgroundImage: `url(${FooterBg.src})`,
+  backgroundSize: "cover",
+  height: "32px",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+});
+
 const Footer = () => {
   return (
-    <div
-      className="bg-cover h-[32px] flex justify-center items-center"
-      style={{ backgroundImage: `url(${FooterBg.src})` }}
-    >
+    <FooterContainer>
       <div className="hidden sm:flex gap-1 justify-center text-white text-[12px]">
         <CustomText>Hit</CustomText>
         <CustomButton>R</CustomButton>
@@ -32,20 +38,20 @@ const Footer = () => {
         <CustomButton>W</CustomButton>
         <CustomButton>Q</CustomButton>
         <CustomText>to switch tabs &bull;</CustomText>
-        <CustomButton style={{ display: "flex", alignItems: "center" }}>
+        <CustomButton>
           <Image alt="" width={12} src={LoopedSquare} />
         </CustomButton>
         <CustomButton>K</CustomButton>
         <CustomText>to type &bull;</CustomText>
         <CustomButton style={{ width: "43px" }}>enter</CustomButton>
         <CustomText>to go &bull;</CustomText>
-        <CustomButton style={{ display: "flex", alignItems: "center" }}>
+        <CustomButton>
           <Image alt="" width={12} src={LoopedSquare} />
         </CustomButton>
         <CustomButton style={{ width: "43px" }}>enter</CustomButton>
         <CustomText>to execute</CustomText>
       </div>
-    </div>
+    </FooterContainer>
   );
 };
 
